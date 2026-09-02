@@ -1,0 +1,29 @@
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# SQLite Database (generated at runtime)
+backend/assessment.db
+*.db
+*.sqlite3
+
+# Local SSL certificates & private keys
+cert.pem
+key.pem
+
+# Environment & IDE
+.env
+.venv/
+env/
+venv/
+ENV/
+.vscode/
+.idea/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+desktop.ini

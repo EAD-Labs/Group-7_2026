@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Pi Jam FAST Assessment — Classroom Marker Scanner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div id="app" class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <div class="logo-icon">FAST</div>
+        <div class="logo-text">
+          <h1>Pi Jam FAST</h1>
+          <span class="subtitle">5-Question Formative Assessment</span>
+        </div>
+      </div>
+      <div class="header-badges">
+        <div id="connection-status" class="badge badge-online">
+          <span class="status-dot"></span> <span id="conn-text">Online</span>
+        </div>
+        <div id="session-badge" class="badge badge-class" style="display: none;">
+          <span id="active-class-label">Class 7A</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Views Container -->
+    <main class="views-wrapper">
+      
+      <!-- VIEW 1: Class Selection -->
+      <section id="view-class-select" class="view-panel active">
+        <div class="card glass-card">
+          <div class="card-header">
+            <h2>Select Classroom</h2>
+            <p>Choose the school and active class section to load the roster.</p>
+          </div>
+          <div class="form-group">
+            <label for="school-select">School</label>
+            <select id="school-select" class="custom-select">
+              <option value="">Loading schools...</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="class-select">Class & Section</label>
+            <select id="class-select" class="custom-select" disabled>
+              <option value="">Select a school first</option>
+            </select>
+          </div>
+          <button id="btn-start-setup" class="btn btn-primary btn-block" disabled>
+            Continue to Attendance & Setup &rarr;
+          </button>
+        </div>
+      </section>
+
+      <!-- VIEW 2: Attendance & Answer Key Setup -->
+      <section id="view-attendance" class="view-panel">
+        <div class="card glass-card">
+          <div class="card-header flex-between">
+            <div>
+              <h2>Attendance Check</h2>
+              <p>Tap any student who is absent today to exclude them from the 5 questions.</p>
+            </div>
+            <div class="attendance-counter">
+              <span id="present-count">30</span> / <span id="total-count">30</span> Present
+            </div>
+          </div>
+
+          <div id="roster-grid" class="roster-grid">
+            <!-- Dynamically populated roster roll number chips -->
+          </div>
+
+          <!-- Answer Key Pre-configuration -->
+          <div class="answer-key-box">
+            <div class="answer-key-header">
+              <h3>Answer Key (5 Questions)</h3>
+              <span class="hint">You can also edit this anytime on the results screen</span>
+            </div>
+            <div class="answer-key-grid">
+              <div class="key-item">
+                <label>Q1</label>
+                <select id="key-setup-1" class="key-select">
+                  <option value="A" selected>A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option>
+                </select>
+              </div>
+              <div class="key-item">
+                <label>Q2</label>
+                <select id="key-setup-2" class="key-select">
+                  <option value="A">A</option><option value="B" selected>B</option><option value="C">C</option><option value="D">D</option>
+                </select>
+              </div>
+              <div class="key-item">
+                <label>Q3</label>
+                <select id="key-setup-3" class="key-select">
+                  <option value="A">A</option><option value="B">B</option><option value="C" selected>C</option><option value="D">D</option>
+                </select>
+              </div>
+              <div class="key-item">
+                <label>Q4</label>
+                <select id="key-setup-4" class="key-select">
+                  <option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D" selected>D</option>
+                </select>
+              </div>
+              <div class="key-item">
+                <label>Q5</label>
+                <select id="key-setup-5" class="key-select">
+                  <option value="A" selected>A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="action-footer">
+            <button id="btn-back-to-class" class="btn btn-secondary">&larr; Back</button>
+            <button id="btn-begin-assessment" class="btn btn-accent">
+              Start Assessment (Question 1 of 5) &rarr;
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 3: Live Camera Scanner -->
+      <section id="view-scanner" class="view-panel">
+        <!-- Floating Live HUD Bar -->
+        <div class="scanner-hud-bar">
+          <div class="hud-item question-pill">
+            <span id="hud-question-label">Question 1 of 5</span>
+          </div>
+          <div class="hud-item progress-gauge">
+            <div class="progress-ring-container">
+              <span id="hud-scanned-count">0</span> / <span id="hud-expected-count">30</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div id="hud-progress-fill" class="progress-bar-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+          <div class="hud-item hud-actions">
+            <button id="btn-switch-camera" class="btn-icon" title="Switch Camera">&#x21bb;</button>
+            <button id="btn-lock-poll" class="btn btn-accent btn-sm">Lock & Tally</button>
+          </div>
+        </div>
+
+        <!-- Camera Viewport & AR Canvas Container -->
+        <div class="camera-viewport-container">
+          <video id="camera-feed" playsinline autoplay muted></video>
+          <canvas id="ar-canvas"></canvas>
+          <div id="blur-warning" class="hud-warning-toast" style="display: none;">
+            ⚠️ Motion Blur Detected — Sweep Slower
+          </div>
+          <div id="anomaly-toast" class="hud-anomaly-toast" style="display: none;"></div>
+        </div>
+
+        <!-- Missing Students Drawer / Banner -->
+        <div class="missing-students-banner">
+          <div class="missing-header">
+            <span>Missing Roll Numbers (<span id="missing-count">0</span>):</span>
+          </div>
+          <div id="missing-pills-list" class="missing-pills-container">
+            <!-- Dynamic missing roll number chips -->
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 4: Single Question Summary -->
+      <section id="view-summary" class="view-panel">
+        <div class="card glass-card">
+          <div class="card-header flex-between">
+            <div>
+              <h2 id="summary-question-title">Question 1 of 5 Completed!</h2>
+              <p id="summary-session-info">Responses stored. Ready for next question.</p>
+            </div>
+            <div class="badge badge-class" id="summary-correct-badge">
+              Key: Option <b id="summary-key-letter" style="margin-left: 4px;">A</b>
+            </div>
+          </div>
+
+          <!-- Answer Distribution Chart -->
+          <div class="distribution-card">
+            <h3>Vote Distribution</h3>
+            <div class="chart-bars">
+              <div class="chart-col">
+                <div class="bar-track">
+                  <div id="bar-A" class="bar-fill bar-red" style="height: 0%;">
+                    <span id="val-A" class="bar-val">0</span>
+                  </div>
+                </div>
+                <span class="bar-label label-red">A</span>
+              </div>
+              <div class="chart-col">
+                <div class="bar-track">
+                  <div id="bar-B" class="bar-fill bar-yellow" style="height: 0%;">
+                    <span id="val-B" class="bar-val">0</span>
+                  </div>
+                </div>
+                <span class="bar-label label-yellow">B</span>
+              </div>
+              <div class="chart-col">
+                <div class="bar-track">
+                  <div id="bar-C" class="bar-fill bar-blue" style="height: 0%;">
+                    <span id="val-C" class="bar-val">0</span>
+                  </div>
+                </div>
+                <span class="bar-label label-blue">C</span>
+              </div>
+              <div class="chart-col">
+                <div class="bar-track">
+                  <div id="bar-D" class="bar-fill bar-green" style="height: 0%;">
+                    <span id="val-D" class="bar-val">0</span>
+                  </div>
+                </div>
+                <span class="bar-label label-green">D</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Student Responses Breakdown -->
+          <div class="responses-breakdown-card">
+            <h3>Student Responses</h3>
+            <div id="summary-responses-grid" class="summary-responses-grid"></div>
+          </div>
+
+          <div class="action-footer flex-col">
+            <button id="btn-next-question" class="btn btn-primary btn-block">
+              Proceed to Question 2 of 5 &rarr;
+            </button>
+            <button id="btn-finish-early" class="btn btn-secondary btn-block">
+              Finish Assessment & View Final Analysis &rarr;
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 5: Final Assessment Analysis Dashboard -->
+      <section id="view-analysis" class="view-panel">
+        <div class="card glass-card">
+          <div class="card-header flex-between">
+            <div>
+              <h2>Assessment Performance Analysis</h2>
+              <p id="analysis-session-subtitle">Pi Jam FAST Assessment Results</p>
+            </div>
+            <button id="btn-start-new-session" class="btn btn-secondary btn-sm">
+              Start New Assessment
+            </button>
+          </div>
+
+          <!-- High-Level Performance Metrics -->
+          <div class="metrics-row">
+            <div class="metric-card highlight-metric">
+              <span class="metric-label">Class Average Score</span>
+              <div class="metric-val-wrapper">
+                <span id="analysis-avg-score" class="metric-val">0%</span>
+              </div>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Students Assessed</span>
+              <span id="analysis-students-count" class="metric-val">0</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Mastery Breakdown</span>
+              <div class="mastery-mini-pills">
+                <span class="pill-high">🟢 High: <b id="cnt-high">0</b></span>
+                <span class="pill-mod">🟡 Moderate: <b id="cnt-mod">0</b></span>
+                <span class="pill-low">🔴 Needs Help: <b id="cnt-low">0</b></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Interactive Answer Key Editor -->
+          <div class="analysis-key-editor">
+            <div class="flex-between">
+              <h3>Answer Key (Adjust to re-score)</h3>
+              <button id="btn-recalculate-scores" class="btn btn-accent btn-sm">
+                Recalculate Scores
+              </button>
+            </div>
+            <div class="answer-key-grid">
+              <div class="key-item"><label>Q1</label><select id="key-edit-1" class="key-select"><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select></div>
+              <div class="key-item"><label>Q2</label><select id="key-edit-2" class="key-select"><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select></div>
+              <div class="key-item"><label>Q3</label><select id="key-edit-3" class="key-select"><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select></div>
+              <div class="key-item"><label>Q4</label><select id="key-edit-4" class="key-select"><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select></div>
+              <div class="key-item"><label>Q5</label><select id="key-edit-5" class="key-select"><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select></div>
+            </div>
+          </div>
+
+          <!-- Question Accuracy Breakdown -->
+          <div class="questions-perf-card">
+            <h3>Question-by-Question Accuracy</h3>
+            <div id="questions-perf-list" class="questions-perf-list">
+              <!-- Dynamically populated question cards -->
+            </div>
+          </div>
+
+          <!-- Full Student Scorecards Table -->
+          <div class="scorecards-card">
+            <h3>Student Performance Matrix</h3>
+            <div class="table-responsive">
+              <table class="scorecard-table">
+                <thead>
+                  <tr>
+                    <th>Roll No</th>
+                    <th>Q1</th>
+                    <th>Q2</th>
+                    <th>Q3</th>
+                    <th>Q4</th>
+                    <th>Q5</th>
+                    <th>Score</th>
+                    <th>Mastery</th>
+                  </tr>
+                </thead>
+                <tbody id="scorecard-table-body">
+                  <!-- Dynamically populated student rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Laptop Card Display — For Phone Scanning Test</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Outfit', sans-serif; }
+    body {
+      background-color: #0f141c;
+      color: #f0f4fc;
+      min-height: 100vh;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    header h1 { font-size: 1.6rem; font-weight: 800; color: #60a5fa; }
+    header p { color: #94a3b8; font-size: 0.95rem; margin-top: 0.3rem; }
+    .instructions {
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      padding: 0.75rem 1.25rem;
+      border-radius: 12px;
+      margin-bottom: 2rem;
+      font-size: 0.9rem;
+      text-align: center;
+    }
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 2rem;
+      max-width: 1200px;
+      width: 100%;
+    }
+    .card-box {
+      background: #18202c;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    }
+    .card-header {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+    .card-title { font-weight: 700; font-size: 1.1rem; }
+    .current-ans-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      font-weight: 700;
+      background: #e74c3c;
+      color: white;
+    }
+    .image-wrapper {
+      width: 220px;
+      height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+    .card-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .btn-group {
+      display: flex;
+      gap: 0.4rem;
+      width: 100%;
+    }
+    .rotate-btn {
+      flex: 1;
+      padding: 0.6rem 0;
+      border: none;
+      border-radius: 8px;
+      font-weight: 800;
+      font-size: 0.9rem;
+      cursor: pointer;
+      color: white;
+      transition: transform 0.15s ease, filter 0.15s ease;
+    }
+    .rotate-btn:hover { filter: brightness(1.15); transform: translateY(-2px); }
+    .btn-A { background: #e74c3c; }
+    .btn-B { background: #f1c40f; color: #000; }
+    .btn-C { background: #3498db; }
+    .btn-D { background: #2ecc71; color: #000; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Classroom Card Display Board</h1>
+    <p>Keep this page open on your laptop screen. Aim your phone's camera at these cards to scan them!</p>
+  </header>
+
+  <div class="instructions">
+    💡 <b>Tip:</b> Click the <b>A, B, C, D</b> buttons below each card to rotate it. Notice how the color facing UP changes to match your selected answer!
+  </div>
+
+  <div class="cards-grid">
+    <!-- Card 1 -->
+    <div class="card-box" id="box-1">
+      <div class="card-header">
+        <span class="card-title">Student Roll #1</span>
+        <span class="current-ans-badge" id="badge-1">Answer: A</span>
+      </div>
+      <div class="image-wrapper">
+        <img id="img-1" class="card-img" src="/output/front/card_01_front.png" alt="Card 1">
+      </div>
+      <div class="btn-group">
+        <button class="rotate-btn btn-A" onclick="setAngle(1, 0, 'A', '#e74c3c')">A</button>
+        <button class="rotate-btn btn-B" onclick="setAngle(1, 90, 'B', '#f1c40f')">B</button>
+        <button class="rotate-btn btn-C" onclick="setAngle(1, 180, 'C', '#3498db')">C</button>
+        <button class="rotate-btn btn-D" onclick="setAngle(1, 270, 'D', '#2ecc71')">D</button>
+      </div>
+    </div>
+
+    <!-- Card 7 -->
+    <div class="card-box" id="box-7">
+      <div class="card-header">
+        <span class="card-title">Student Roll #7</span>
+        <span class="current-ans-badge" id="badge-7">Answer: A</span>
+      </div>
+      <div class="image-wrapper">
+        <img id="img-7" class="card-img" src="/output/front/card_07_front.png" alt="Card 7">
+      </div>
+      <div class="btn-group">
+        <button class="rotate-btn btn-A" onclick="setAngle(7, 0, 'A', '#e74c3c')">A</button>
+        <button class="rotate-btn btn-B" onclick="setAngle(7, 90, 'B', '#f1c40f')">B</button>
+        <button class="rotate-btn btn-C" onclick="setAngle(7, 180, 'C', '#3498db')">C</button>
+        <button class="rotate-btn btn-D" onclick="setAngle(7, 270, 'D', '#2ecc71')">D</button>
+      </div>
+    </div>
+
+    <!-- Card 14 -->
+    <div class="card-box" id="box-14">
+      <div class="card-header">
+        <span class="card-title">Student Roll #14</span>
+        <span class="current-ans-badge" id="badge-14">Answer: A</span>
+      </div>
+      <div class="image-wrapper">
+        <img id="img-14" class="card-img" src="/output/front/card_14_front.png" alt="Card 14">
+      </div>
+      <div class="btn-group">
+        <button class="rotate-btn btn-A" onclick="setAngle(14, 0, 'A', '#e74c3c')">A</button>
+        <button class="rotate-btn btn-B" onclick="setAngle(14, 90, 'B', '#f1c40f')">B</button>
+        <button class="rotate-btn btn-C" onclick="setAngle(14, 180, 'C', '#3498db')">C</button>
+        <button class="rotate-btn btn-D" onclick="setAngle(14, 270, 'D', '#2ecc71')">D</button>
+      </div>
+    </div>
+
+    <!-- Card 22 -->
+    <div class="card-box" id="box-22">
+      <div class="card-header">
+        <span class="card-title">Student Roll #22</span>
+        <span class="current-ans-badge" id="badge-22">Answer: A</span>
+      </div>
+      <div class="image-wrapper">
+        <img id="img-22" class="card-img" src="/output/front/card_22_front.png" alt="Card 22">
+      </div>
+      <div class="btn-group">
+        <button class="rotate-btn btn-A" onclick="setAngle(22, 0, 'A', '#e74c3c')">A</button>
+        <button class="rotate-btn btn-B" onclick="setAngle(22, 90, 'B', '#f1c40f')">B</button>
+        <button class="rotate-btn btn-C" onclick="setAngle(22, 180, 'C', '#3498db')">C</button>
+        <button class="rotate-btn btn-D" onclick="setAngle(22, 270, 'D', '#2ecc71')">D</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function setAngle(cardId, deg, letter, color) {
+      // Rotate counter-clockwise in CSS so the desired letter rotates to the top
+      // 0 -> A at top
+      // 90 CCW (-90 deg) -> B at top
+      // 180 -> C at top
+      // 270 CCW (-270 deg) -> D at top
+      const cssAngle = -deg;
+      const img = document.getElementById(`img-${cardId}`);
+      const badge = document.getElementById(`badge-${cardId}`);
+      
+      img.style.transform = `rotate(${cssAngle}deg)`;
+      badge.textContent = `Answer: ${letter}`;
+      badge.style.background = color;
+      badge.style.color = (letter === 'B' || letter === 'D') ? '#000' : '#fff';
+    }
+  </script>
+</body>
+</html>
