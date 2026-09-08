@@ -1,13 +1,28 @@
 import datetime
 import ipaddress
 import os
+import socket
 from cryptography import x509
 from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
 
-def generate_self_signed_cert(cert_file="cert.pem", key_file="key.pem", ip_addr="10.21.233.180"):
+def get_local_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(('8.8.8.8', 80))
+        ip = s.getsockname()[0]
+    except Exception:
+        ip = "127.0.0.1"
+    finally:
+        s.close()
+    return ip
+
+def generate_self_signed_cert(cert_file="cert.pem", key_file="key.pem", ip_addr=None):
+    if not ip_addr:
+        ip_addr = get_local_ip()
+
     # Generate private key
     key = rsa.generate_private_key(
         public_exponent=65537,
@@ -54,3 +69,4 @@ def generate_self_signed_cert(cert_file="cert.pem", key_file="key.pem", ip_addr=
 
 if __name__ == "__main__":
     generate_self_signed_cert()
+

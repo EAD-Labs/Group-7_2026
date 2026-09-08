@@ -1,6 +1,18 @@
 import sys
 import os
+import socket
 import uvicorn
+
+def get_local_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(('8.8.8.8', 80))
+        ip = s.getsockname()[0]
+    except Exception:
+        ip = "127.0.0.1"
+    finally:
+        s.close()
+    return ip
 
 def main():
     use_http = "--http" in sys.argv
@@ -8,16 +20,25 @@ def main():
     cert_file = os.path.join(base_dir, "cert.pem")
     key_file = os.path.join(base_dir, "key.pem")
 
-    local_ip = "10.21.233.180"
+    local_ip = get_local_ip()
 
     print("==========================================================")
     print("   Pi Jam Classroom Assessment Web Application Server   ")
     print("==========================================================")
 
+    mobile_url = f"{'https' if not use_http and os.path.exists(cert_file) and os.path.exists(key_file) else 'http'}://{local_ip}:8000"
+    try:
+        import qrcode
+        qr_img = qrcode.make(mobile_url)
+        qr_img.save(os.path.join(base_dir, "mobile_connect_qr.png"))
+        print(f"[*] QR Code saved to: {os.path.join(base_dir, 'mobile_connect_qr.png')}")
+    except Exception:
+        pass
+
     if not use_http and os.path.exists(cert_file) and os.path.exists(key_file):
         print(f"[*] Starting with HTTPS (Required for Mobile Camera Access)")
         print(f"[*] Access from Laptop: https://localhost:8000")
-        print(f"[*] Access from Mobile: https://{local_ip}:8000")
+        print(f"[*] Access from Mobile: {mobile_url}")
         print("----------------------------------------------------------")
         print("NOTE for Mobile Browser: Tap 'Advanced' -> 'Proceed' to accept")
         print("the local self-signed certificate.")
@@ -33,7 +54,7 @@ def main():
     else:
         print(f"[*] Starting with HTTP")
         print(f"[*] Access from Laptop: http://localhost:8000")
-        print(f"[*] Access from Mobile: http://{local_ip}:8000")
+        print(f"[*] Access from Mobile: {mobile_url}")
         print("==========================================================")
         uvicorn.run(
             "backend.main:app",
@@ -44,3 +65,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
