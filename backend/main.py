@@ -1,25 +1,44 @@
+"""
+Pi Jam Foundation Classroom Assessment System — FastAPI Application
+REST APIs, File Uploads, Real-time Recalculation, WebSocket CV Scanner, and Static Asset Server.
+"""
+
 import os
 import json
 import uuid
 import base64
+import shutil
 from datetime import datetime
+from typing import List, Optional, Dict, Any
+
 import cv2
 import numpy as np
-
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends, UploadFile, File, Form, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
-from typing import List, Optional
 
-from backend.database import get_db
+from backend.database import get_db, UPLOAD_DIR, EXPORT_DIR
+from backend.services.analytics_service import (
+    calculate_session_analysis,
+    get_teacher_historical_analytics,
+    get_manager_dashboard_analytics,
+)
+from backend.services.export_service import (
+    generate_excel_scorecard,
+    generate_merged_pdf,
+)
 from core.cv_engine import CVDetector
 from core.session_tracker import SessionTracker
 
-app = FastAPI(title="Classroom Marker Assessment API")
+app = FastAPI(
+    title="Pi Jam FAST Assessment Platform API",
+    description="Vision-based low-cost formative assessment system for real classrooms.",
+    version="2.0.0"
+)
 
-# Enable CORS for browser access
+# Enable CORS for local network and mobile devices
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -28,42 +47,166 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Shared detector instance
+# Shared detector instance for marker localization
 detector = CVDetector()
 
 # In-memory active tracker cache for live sessions: {session_id: SessionTracker}
-active_trackers = {}
+active_trackers: Dict[str, SessionTracker] = {}
 
-# Pydantic Request Models
+
+# --- Health Check (used by Railway/Render deployment health checks) ---
+
+@app.get("/api/health")
+def health_check():
+    """
+    Lightweight liveness endpoint.
+    Railway, Render, and load balancers poll this every 30s to confirm the server is running.
+    Returns server status and environment type.
+    """
+    return {
+        "status": "ok",
+        "service": "Pi Jam FAST Assessment API",
+        "version": "2.0.0",
+        "environment": os.environ.get("PIJAM_ENV", "development"),
+    }
+
+
+
+# --- Pydantic Schemas ---
+
+class LoginRequest(BaseModel):
+    user_id: str  # Teacher ID (e.g. 'PJ-T101') or Manager ID ('PJ-M001')
+    pin: Optional[str] = "1234"
+
+
 class CreateSessionRequest(BaseModel):
     class_id: str
+    teacher_id: Optional[str] = "PJ-T101"
+    quiz_name: Optional[str] = "Formative Assessment"
+    subject: Optional[str] = "Computer Science"
+    session_date: Optional[str] = None
+    question_count: Optional[int] = 5
+    question_mode: Optional[str] = "blackboard"  # "blackboard" or "pdf"
+    pre_set_answer_key: Optional[Dict[str, str]] = None  # e.g. {"1": "A", "2": "C"}
+
 
 class MarkAbsenteesRequest(BaseModel):
     absentees: List[int]
+
 
 class CreateQuestionRequest(BaseModel):
     sequence_number: int
     prompt_text: Optional[str] = "Question"
     correct_answer: Optional[str] = None
 
+
 class CommitResponsesRequest(BaseModel):
-    responses: dict  # {roll_no: "A"|"B"|"C"|"D"}
+    responses: Dict[str, str]  # {roll_no: "A"|"B"|"C"|"D"}
+
+
+class AnswerKeyRequest(BaseModel):
+    answer_key: Dict[str, str]  # {"1": "A", "2": "B", ...}
+
+
+class RecalculateRequest(BaseModel):
+    answer_key: Dict[str, str]
+    persist: Optional[bool] = False
+
 
 class OfflineSyncPayload(BaseModel):
     session_id: str
     class_id: str
+    teacher_id: Optional[str] = "PJ-T101"
+    quiz_name: Optional[str] = "Offline Assessment"
+    subject: Optional[str] = "General"
     session_date: str
+    question_count: int = 5
+    question_mode: str = "blackboard"
+    answer_key: Optional[Dict[str, str]] = None
     absentees: List[int]
-    questions: List[dict]  # [{'sequence_number': 1, 'responses': {roll: ans}}]
+    questions: List[Dict[str, Any]]  # [{'sequence_number': 1, 'responses': {roll: ans}}]
 
 
-# --- REST API Endpoints ---
+# --- Authentication & Profile Endpoints ---
+
+@app.post("/api/auth/login")
+def login(req: LoginRequest):
+    """
+    Authenticates teacher or supervisor by ID.
+    Returns teacher profile, assigned schools, and classes.
+    """
+    clean_id = req.user_id.strip()
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT t.teacher_id, t.school_id, t.name, t.email, t.subject, t.role, t.pin,
+           sch.name as school_name, sch.school_code
+    FROM teachers t
+    JOIN schools sch ON t.school_id = sch.school_id
+    WHERE LOWER(t.teacher_id) = LOWER(?)
+    """, (clean_id,))
+    row = cursor.fetchone()
+
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=401, detail=f"User ID '{req.user_id}' not found in registry.")
+
+    user = dict(row)
+    # Check PIN if configured
+    if req.pin and user.get("pin") and req.pin.strip() != user["pin"].strip():
+        conn.close()
+        raise HTTPException(status_code=401, detail="Invalid security PIN.")
+
+    # Fetch classes available for this teacher's school
+    cursor.execute("""
+    SELECT class_id, grade, section, academic_year, max_students
+    FROM classes
+    WHERE school_id = ?
+    ORDER BY grade ASC, section ASC
+    """, (user["school_id"],))
+    classes = [dict(c) for c in cursor.fetchall()]
+    conn.close()
+
+    return {
+        "status": "success",
+        "user": {
+            "teacher_id": user["teacher_id"],
+            "name": user["name"],
+            "email": user["email"],
+            "subject": user["subject"],
+            "role": user["role"],
+            "school_id": user["school_id"],
+            "school_name": user["school_name"],
+            "school_code": user["school_code"]
+        },
+        "classes": classes
+    }
+
+
+@app.get("/api/teachers")
+def list_teachers():
+    """Lists registered teachers for quick selection in school mode."""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+    SELECT t.teacher_id, t.name, t.subject, t.role, sch.name as school_name
+    FROM teachers t
+    JOIN schools sch ON t.school_id = sch.school_id
+    ORDER BY t.role DESC, t.name ASC
+    """)
+    rows = [dict(r) for r in cursor.fetchall()]
+    conn.close()
+    return rows
+
+
+# --- School & Roster Endpoints ---
 
 @app.get("/api/schools")
 def list_schools():
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM schools")
+    cursor.execute("SELECT * FROM schools ORDER BY name ASC")
     rows = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return rows
@@ -73,7 +216,7 @@ def list_schools():
 def list_classes(school_id: str):
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM classes WHERE school_id = ?", (school_id,))
+    cursor.execute("SELECT * FROM classes WHERE school_id = ? ORDER BY grade ASC, section ASC", (school_id,))
     rows = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return rows
@@ -93,28 +236,98 @@ def get_roster(class_id: str):
     return {"class_id": class_id, "students": students}
 
 
+# --- Assessment Session Lifecycle Endpoints ---
+
 @app.post("/api/sessions")
 def create_session(req: CreateSessionRequest):
+    """
+    Initializes a new assessment session with dynamic questions,
+    metadata, and optional pre-set answer key.
+    """
     session_id = f"sess_{uuid.uuid4().hex[:10]}"
     now = datetime.utcnow().isoformat()
+    sess_date = req.session_date or now[:10]
+    q_count = max(1, min(req.question_count or 5, 25))
 
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("""
-    INSERT INTO sessions (session_id, class_id, session_date, status, created_at)
-    VALUES (?, ?, ?, 'in_progress', ?)
-    """, (session_id, req.class_id, now[:10], now))
+    INSERT INTO sessions (
+        session_id, class_id, teacher_id, quiz_name, subject, 
+        session_date, question_count, question_mode, status, created_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'in_progress', ?)
+    """, (
+        session_id, req.class_id, req.teacher_id, req.quiz_name, req.subject,
+        sess_date, q_count, req.question_mode, now
+    ))
+
+    # Pre-populate question entries
+    pre_key = req.pre_set_answer_key or {}
+    for seq in range(1, q_count + 1):
+        q_id = f"q_{session_id}_{seq}"
+        corr = pre_key.get(str(seq))
+        cursor.execute("""
+        INSERT INTO questions (question_id, session_id, sequence_number, prompt_text, correct_answer)
+        VALUES (?, ?, ?, ?, ?)
+        """, (q_id, session_id, seq, f"Question {seq}", corr))
 
     # Fetch roll numbers to initialize SessionTracker
     cursor.execute("SELECT roll_number FROM students WHERE class_id = ?", (req.class_id,))
     rolls = [row[0] for row in cursor.fetchall()]
+    if not rolls:
+        rolls = list(range(1, 31))  # Fallback 1 to 30
+
     conn.commit()
     conn.close()
 
     # Initialize tracker in memory
     active_trackers[session_id] = SessionTracker(active_roster=rolls)
 
-    return {"session_id": session_id, "status": "in_progress", "total_students": len(rolls)}
+    return {
+        "session_id": session_id,
+        "quiz_name": req.quiz_name,
+        "question_count": q_count,
+        "question_mode": req.question_mode,
+        "status": "in_progress",
+        "total_students": len(rolls)
+    }
+
+
+@app.post("/api/sessions/{session_id}/upload-pdf")
+async def upload_question_pdf(session_id: str, file: UploadFile = File(...)):
+    """
+    Uploads question paper PDF for archival and merges into the final report.
+    Stores in backend/uploads/pdfs/{session_id}_{filename}.
+    """
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+
+    # Sanitize filename
+    clean_name = os.path.basename(file.filename)
+    dest_filename = f"{session_id}_{clean_name}"
+    dest_path = os.path.join(UPLOAD_DIR, dest_filename)
+
+    with open(dest_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    # Update session in DB
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+    UPDATE sessions 
+    SET pdf_filename = ?, pdf_path = ?, question_mode = 'pdf'
+    WHERE session_id = ?
+    """, (clean_name, dest_path, session_id))
+    conn.commit()
+    conn.close()
+
+    return {
+        "status": "success",
+        "session_id": session_id,
+        "filename": clean_name,
+        "size_bytes": os.path.getsize(dest_path)
+    }
 
 
 @app.post("/api/sessions/{session_id}/absentees")
@@ -139,13 +352,23 @@ def mark_absentees(session_id: str, req: MarkAbsenteesRequest):
 
 @app.post("/api/sessions/{session_id}/questions")
 def create_question(session_id: str, req: CreateQuestionRequest):
-    question_id = f"q_{uuid.uuid4().hex[:10]}"
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("""
-    INSERT INTO questions (question_id, session_id, sequence_number, prompt_text, correct_answer)
-    VALUES (?, ?, ?, ?, ?)
-    """, (question_id, session_id, req.sequence_number, req.prompt_text, req.correct_answer))
+    # Check if question exists
+    cursor.execute("SELECT question_id FROM questions WHERE session_id = ? AND sequence_number = ?", (session_id, req.sequence_number))
+    row = cursor.fetchone()
+
+    if row:
+        question_id = row[0]
+        if req.correct_answer:
+            cursor.execute("UPDATE questions SET correct_answer = ? WHERE question_id = ?", (req.correct_answer, question_id))
+    else:
+        question_id = f"q_{session_id}_{req.sequence_number}"
+        cursor.execute("""
+        INSERT INTO questions (question_id, session_id, sequence_number, prompt_text, correct_answer)
+        VALUES (?, ?, ?, ?, ?)
+        """, (question_id, session_id, req.sequence_number, req.prompt_text, req.correct_answer))
+
     conn.commit()
     conn.close()
 
@@ -160,7 +383,6 @@ def commit_responses(question_id: str, req: CommitResponsesRequest):
     conn = get_db()
     cursor = conn.cursor()
 
-    # Fetch context: class_id and school_code
     cursor.execute("""
     SELECT s.class_id, sch.school_code
     FROM questions q
@@ -179,7 +401,7 @@ def commit_responses(question_id: str, req: CommitResponsesRequest):
 
     inserted = 0
     for roll_no, answer in req.responses.items():
-        resp_id = f"resp_{uuid.uuid4().hex[:10]}"
+        resp_id = f"resp_{question_id}_{roll_no}"
         cursor.execute("""
         INSERT OR REPLACE INTO responses 
         (response_id, question_id, school_code, class_id, roll_number, marker_id_detected, selected_option, confidence, captured_at)
@@ -192,6 +414,112 @@ def commit_responses(question_id: str, req: CommitResponsesRequest):
     return {"question_id": question_id, "committed_count": inserted}
 
 
+@app.post("/api/sessions/{session_id}/answer_key")
+def save_answer_key(session_id: str, req: AnswerKeyRequest):
+    """
+    Persists updated answer key to database and returns newly recalculated analysis.
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+
+    for seq_str, correct_ans in req.answer_key.items():
+        seq = int(seq_str)
+        cursor.execute("SELECT question_id FROM questions WHERE session_id = ? AND sequence_number = ?", (session_id, seq))
+        row = cursor.fetchone()
+        if row:
+            cursor.execute("UPDATE questions SET correct_answer = ? WHERE question_id = ?", (correct_ans, row[0]))
+        else:
+            q_id = f"q_{session_id}_{seq}"
+            cursor.execute("""
+            INSERT INTO questions (question_id, session_id, sequence_number, prompt_text, correct_answer)
+            VALUES (?, ?, ?, ?, ?)
+            """, (q_id, session_id, seq, f"Question {seq}", correct_ans))
+
+    cursor.execute("UPDATE sessions SET status = 'completed' WHERE session_id = ?", (session_id,))
+    conn.commit()
+    conn.close()
+
+    # Recalculate analysis
+    analysis = calculate_session_analysis(session_id)
+    return {"status": "success", "session_id": session_id, "analysis": analysis}
+
+
+@app.post("/api/sessions/{session_id}/recalculate")
+def recalculate_live(session_id: str, req: RecalculateRequest):
+    """
+    Instant reactive recalculation endpoint.
+    Recalculates scores, mastery, and charts on the fly when the teacher edits the key.
+    """
+    if req.persist:
+        # Also persist to DB
+        return save_answer_key(session_id, AnswerKeyRequest(answer_key=req.answer_key))
+
+    # Real-time computation without modifying database
+    analysis = calculate_session_analysis(session_id, custom_answer_key=req.answer_key)
+    return {"status": "recalculated", "analysis": analysis}
+
+
+@app.get("/api/sessions/{session_id}/analysis")
+def get_session_analysis_endpoint(session_id: str):
+    """Returns detailed assessment scorecard and distractor analysis."""
+    try:
+        return calculate_session_analysis(session_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+# --- Export Endpoints (Excel & Merged PDF) ---
+
+@app.get("/api/sessions/{session_id}/export/excel")
+def export_excel(session_id: str):
+    """Generates and serves downloadable Excel spreadsheet (.xlsx)."""
+    try:
+        file_path = generate_excel_scorecard(session_id)
+        filename = os.path.basename(file_path)
+        return FileResponse(
+            path=file_path,
+            filename=filename,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate Excel report: {str(e)}")
+
+
+@app.get("/api/sessions/{session_id}/export/merged-pdf")
+def export_merged_pdf(session_id: str):
+    """
+    Generates unified dossier PDF:
+    Page 1: Performance Scorecard Table
+    Page 2+: Uploaded Question Paper PDF
+    """
+    try:
+        file_path = generate_merged_pdf(session_id)
+        filename = os.path.basename(file_path)
+        return FileResponse(
+            path=file_path,
+            filename=filename,
+            media_type="application/pdf"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate merged PDF: {str(e)}")
+
+
+# --- Historical & Supervisor Dashboards ---
+
+@app.get("/api/teachers/{teacher_id}/history")
+def get_teacher_history(teacher_id: str, range: Optional[str] = Query("month", pattern="^(day|week|month)$")):
+    """Retrieves 90-day assessment archive for teacher."""
+    return get_teacher_historical_analytics(teacher_id, time_filter=range)
+
+
+@app.get("/api/manager/dashboard")
+def get_manager_dashboard():
+    """Supervisor view of all schools, teachers, and aggregate metrics."""
+    return get_manager_dashboard_analytics()
+
+
+# --- Offline Synchronization Endpoint ---
+
 @app.post("/api/sessions/{session_id}/sync")
 def sync_offline_session(session_id: str, payload: OfflineSyncPayload):
     """
@@ -201,9 +529,16 @@ def sync_offline_session(session_id: str, payload: OfflineSyncPayload):
     cursor = conn.cursor()
 
     cursor.execute("""
-    INSERT OR REPLACE INTO sessions (session_id, class_id, session_date, status, created_at)
-    VALUES (?, ?, ?, 'completed', ?)
-    """, (payload.session_id, payload.class_id, payload.session_date, datetime.utcnow().isoformat()))
+    INSERT OR REPLACE INTO sessions (
+        session_id, class_id, teacher_id, quiz_name, subject, 
+        session_date, question_count, question_mode, status, created_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?)
+    """, (
+        payload.session_id, payload.class_id, payload.teacher_id,
+        payload.quiz_name, payload.subject, payload.session_date,
+        payload.question_count, payload.question_mode, datetime.utcnow().isoformat()
+    ))
 
     # Absentees
     for r in payload.absentees:
@@ -212,14 +547,17 @@ def sync_offline_session(session_id: str, payload: OfflineSyncPayload):
     # Questions and Responses
     total_responses = 0
     for q in payload.questions:
-        q_id = f"q_sync_{uuid.uuid4().hex[:8]}"
+        seq = q.get("sequence_number", 1)
+        q_id = f"q_{payload.session_id}_{seq}"
+        corr = payload.answer_key.get(str(seq)) if payload.answer_key else None
+
         cursor.execute("""
-        INSERT INTO questions (question_id, session_id, sequence_number, prompt_text)
-        VALUES (?, ?, ?, ?)
-        """, (q_id, payload.session_id, q.get("sequence_number", 1), q.get("prompt_text", "Question")))
+        INSERT OR REPLACE INTO questions (question_id, session_id, sequence_number, prompt_text, correct_answer)
+        VALUES (?, ?, ?, ?, ?)
+        """, (q_id, payload.session_id, seq, f"Question {seq}", corr))
 
         for roll, ans in q.get("responses", {}).items():
-            r_id = f"resp_sync_{uuid.uuid4().hex[:8]}"
+            r_id = f"resp_{q_id}_{roll}"
             cursor.execute("""
             INSERT OR REPLACE INTO responses
             (response_id, question_id, school_code, class_id, roll_number, marker_id_detected, selected_option, confidence, captured_at)
@@ -232,169 +570,7 @@ def sync_offline_session(session_id: str, payload: OfflineSyncPayload):
     return {"status": "synced", "session_id": payload.session_id, "total_responses": total_responses}
 
 
-class AnswerKeyRequest(BaseModel):
-    answer_key: dict  # {"1": "A", "2": "B", "3": "C", "4": "D", "5": "A"}
-
-
-@app.post("/api/sessions/{session_id}/answer_key")
-def save_answer_key(session_id: str, req: AnswerKeyRequest):
-    conn = get_db()
-    cursor = conn.cursor()
-    for seq_str, correct_ans in req.answer_key.items():
-        seq = int(seq_str)
-        cursor.execute("SELECT question_id FROM questions WHERE session_id = ? AND sequence_number = ?", (session_id, seq))
-        row = cursor.fetchone()
-        if row:
-            cursor.execute("UPDATE questions SET correct_answer = ? WHERE question_id = ?", (correct_ans, row[0]))
-        else:
-            q_id = f"q_{uuid.uuid4().hex[:10]}"
-            cursor.execute("""
-            INSERT INTO questions (question_id, session_id, sequence_number, prompt_text, correct_answer)
-            VALUES (?, ?, ?, ?, ?)
-            """, (q_id, session_id, seq, f"Question {seq}", correct_ans))
-    conn.commit()
-    conn.close()
-    return {"status": "success", "session_id": session_id, "answer_key": req.answer_key}
-
-
-@app.get("/api/sessions/{session_id}/analysis")
-def get_session_analysis(session_id: str):
-    conn = get_db()
-    cursor = conn.cursor()
-
-    # 1. Fetch class info
-    cursor.execute("SELECT class_id, session_date, status FROM sessions WHERE session_id = ?", (session_id,))
-    sess_row = cursor.fetchone()
-    if not sess_row:
-        conn.close()
-        raise HTTPException(status_code=404, detail="Session not found")
-
-    class_id = sess_row[0]
-    cursor.execute("SELECT roll_number FROM students WHERE class_id = ? AND status = 'active' ORDER BY roll_number", (class_id,))
-    roster_rolls = [r[0] for r in cursor.fetchall()]
-
-    # 2. Fetch absentees
-    cursor.execute("SELECT roll_number FROM session_absentees WHERE session_id = ?", (session_id,))
-    absentees = [r[0] for r in cursor.fetchall()]
-    expected_rolls = [r for r in roster_rolls if r not in absentees]
-
-    # 3. Fetch questions & answer key
-    cursor.execute("SELECT question_id, sequence_number, correct_answer FROM questions WHERE session_id = ? ORDER BY sequence_number ASC", (session_id,))
-    questions_rows = cursor.fetchall()
-    question_map = {}
-    for q_id, seq, ans in questions_rows:
-        question_map[seq] = {"question_id": q_id, "correct_answer": ans or ""}
-
-    total_questions = 5  # Pi Jam FAST standard is fixed 5 questions
-    for s in range(1, total_questions + 1):
-        if s not in question_map:
-            question_map[s] = {"question_id": None, "correct_answer": ""}
-
-    # 4. Fetch all responses for this session
-    cursor.execute("""
-    SELECT q.sequence_number, r.roll_number, r.selected_option
-    FROM responses r
-    JOIN questions q ON r.question_id = q.question_id
-    WHERE q.session_id = ?
-    """, (session_id,))
-    resp_rows = cursor.fetchall()
-
-    student_responses = {roll: {} for roll in expected_rolls}
-    question_distributions = {seq: {"A": 0, "B": 0, "C": 0, "D": 0, "total": 0, "correct_count": 0} for seq in range(1, total_questions + 1)}
-
-    for seq, roll, opt in resp_rows:
-        if roll in student_responses:
-            student_responses[roll][seq] = opt
-        if seq in question_distributions and opt in question_distributions[seq]:
-            question_distributions[seq][opt] += 1
-            question_distributions[seq]["total"] += 1
-            correct = question_map[seq]["correct_answer"]
-            if correct and opt == correct:
-                question_distributions[seq]["correct_count"] += 1
-
-    # 5. Compute student scorecards & mastery
-    student_scorecards = []
-    total_class_score = 0
-    evaluated_student_count = 0
-    mastery_counts = {"high": 0, "moderate": 0, "low": 0}
-
-    for roll in expected_rolls:
-        resps = student_responses[roll]
-        score = 0
-        questions_answered = 0
-        breakdown = {}
-
-        for seq in range(1, total_questions + 1):
-            given = resps.get(seq, "-")
-            correct = question_map[seq]["correct_answer"]
-            is_correct = bool(correct and given == correct)
-            if is_correct:
-                score += 1
-            if given != "-":
-                questions_answered += 1
-            breakdown[seq] = {
-                "given": given,
-                "correct": correct,
-                "is_correct": is_correct
-            }
-
-        pct = round((score / total_questions * 100.0), 1)
-        if questions_answered > 0:
-            total_class_score += pct
-            evaluated_student_count += 1
-
-        if pct >= 80:
-            mastery = "High Mastery"
-            mastery_counts["high"] += 1
-        elif pct >= 40:
-            mastery = "Moderate"
-            mastery_counts["moderate"] += 1
-        else:
-            mastery = "Needs Support"
-            mastery_counts["low"] += 1
-
-        student_scorecards.append({
-            "roll_number": roll,
-            "score": score,
-            "total_questions": total_questions,
-            "percentage": pct,
-            "mastery": mastery,
-            "breakdown": breakdown
-        })
-
-    class_average = round(total_class_score / evaluated_student_count, 1) if evaluated_student_count > 0 else 0.0
-
-    question_summary = []
-    for seq in range(1, total_questions + 1):
-        d = question_distributions[seq]
-        corr = question_map[seq]["correct_answer"]
-        acc = round((d["correct_count"] / d["total"] * 100.0), 1) if d["total"] > 0 else 0.0
-        question_summary.append({
-            "sequence": seq,
-            "correct_answer": corr,
-            "accuracy_percentage": acc,
-            "distribution": {k: d[k] for k in ["A", "B", "C", "D"]},
-            "total_responses": d["total"]
-        })
-
-    conn.close()
-    return {
-        "session_id": session_id,
-        "class_id": class_id,
-        "total_expected": len(expected_rolls),
-        "total_participated": evaluated_student_count,
-        "class_average_percentage": class_average,
-        "mastery_counts": mastery_counts,
-        "questions": question_summary,
-        "scorecards": student_scorecards,
-        "answer_key": {str(seq): question_map[seq]["correct_answer"] for seq in range(1, total_questions + 1)}
-    }
-
-
-@app.get("/api/analytics/sessions/{session_id}")
-def get_session_analytics(session_id: str):
-    return get_session_analysis(session_id)
-
+# --- Computer Vision WebSocket Endpoint ---
 
 def to_json_safe(obj):
     if isinstance(obj, (np.bool_,)):
@@ -418,7 +594,6 @@ async def websocket_scan(websocket: WebSocket, session_id: str):
 
     # Get or initialize SessionTracker
     if session_id not in active_trackers:
-        # Load from DB
         conn = get_db()
         cursor = conn.cursor()
         cursor.execute("""
@@ -440,7 +615,6 @@ async def websocket_scan(websocket: WebSocket, session_id: str):
 
     try:
         while True:
-            # Receive frame as binary JPEG or Base64 string
             data = await websocket.receive()
             if "bytes" in data and data["bytes"]:
                 nparr = np.frombuffer(data["bytes"], np.uint8)
@@ -478,11 +652,15 @@ async def websocket_scan(websocket: WebSocket, session_id: str):
                 "summary": summary,
                 "is_blurry": bool(cv_res["is_blurry"]),
                 "blur_metric": float(cv_res["blur_metric"]),
+                "frame_width": int(cv_res.get("frame_width", frame.shape[1])),
+                "frame_height": int(cv_res.get("frame_height", frame.shape[0])),
             }
             await websocket.send_json(to_json_safe(response_payload))
 
-    except WebSocketDisconnect:
+    except (WebSocketDisconnect, RuntimeError):
         pass
+    except Exception as e:
+        print(f"WebSocket session closed: {e}")
 
 
 # Mount Frontend & Output static files

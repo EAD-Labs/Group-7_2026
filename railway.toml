@@ -1,0 +1,25 @@
+# Railway.toml — Pi Jam FAST Backend Deployment Config
+# ======================================================
+# This file tells Railway how to build and start the backend.
+# Railway is a free cloud platform (railway.app) — deploy in 2 minutes.
+#
+# HOW TO DEPLOY:
+#   1. Push this repo to GitHub
+#   2. Go to railway.app → New Project → Deploy from GitHub repo
+#   3. Railway auto-detects this file and deploys
+#   4. Copy the public URL (e.g. https://pijam-fast.up.railway.app)
+#   5. Paste it into frontend/config.js → PRODUCTION_API_URL
+#   6. Rebuild the APK (npx cap sync android && npx cap build android)
+
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "uvicorn backend.main:app --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 60
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
+
+[environments.production]
+variables = { PIJAM_ENV = "production" }

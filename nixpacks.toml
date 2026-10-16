@@ -1,0 +1,21 @@
+# nixpacks.toml — Build configuration for Railway/Nixpacks
+# ===========================================================
+# OpenCV needs libGL system libraries that aren't in the default Python image.
+# This tells Nixpacks to install them before pip install.
+
+[phases.setup]
+nixPkgs = [
+  "python311",
+  "libGL",           # Required by opencv-python for cv2
+  "libGLU",
+  "glib",
+  "libgcc",
+  "zlib",
+  "gcc",
+]
+
+[phases.install]
+cmds = ["pip install -r requirements.txt"]
+
+[start]
+cmd = "uvicorn backend.main:app --host 0.0.0.0 --port $PORT"

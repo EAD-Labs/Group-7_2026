@@ -1,4 +1,6 @@
-opencv-python>=4.8.0
+# opencv-python-headless: same CV functionality as opencv-python but without
+# GUI/display dependencies (libGL etc.) — required for cloud servers (Railway, Render, Docker)
+opencv-python-headless>=4.8.0
 numpy>=1.24.0
 Pillow>=10.0.0
 fastapi>=0.100.0
@@ -6,3 +8,7 @@ uvicorn[standard]>=0.22.0
 websockets>=11.0.0
 pydantic>=2.0.0
 cryptography>=41.0.0
+openpyxl>=3.1.0
+pypdf>=4.0.0
+reportlab>=4.0.0
+qrcode>=7.0.0

@@ -3,68 +3,268 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Pi Jam FAST Assessment — Classroom Marker Scanner</title>
+  <title>Pi Jam FAST Assessment Platform</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/styles.css">
+  <!-- Environment-aware API config: sets window.API_BASE and window.WS_BASE -->
+  <script src="/static/config.js"></script>
 </head>
 <body>
   <div id="app" class="app-container">
-    <!-- Header -->
+    
+    <!-- App Header & Navigation Bar -->
     <header class="app-header">
-      <div class="logo-area">
+      <div class="logo-area" id="header-home-btn" style="cursor: pointer;">
         <div class="logo-icon">FAST</div>
         <div class="logo-text">
           <h1>Pi Jam FAST</h1>
-          <span class="subtitle">5-Question Formative Assessment</span>
+          <span class="subtitle">Classroom Formative Assessment</span>
         </div>
       </div>
+      
       <div class="header-badges">
+        <!-- Online/Offline Badge -->
         <div id="connection-status" class="badge badge-online">
           <span class="status-dot"></span> <span id="conn-text">Online</span>
         </div>
-        <div id="session-badge" class="badge badge-class" style="display: none;">
-          <span id="active-class-label">Class 7A</span>
+        
+        <!-- Active User Profile Badge -->
+        <div id="user-badge" class="badge badge-user" style="display: none;">
+          <span id="user-name-label">Teacher</span>
         </div>
+
+        <!-- Navigation Shortcut Buttons -->
+        <button id="btn-nav-history" class="btn-nav-icon" title="Teacher 3-Month History" style="display: none;">📊 History</button>
+        <button id="btn-nav-manager" class="btn-nav-icon badge-accent" title="Supervisor Dashboard" style="display: none;">🛡️ Supervisor</button>
+        <button id="btn-logout" class="btn-nav-icon btn-logout" title="Sign Out" style="display: none;">🚪</button>
       </div>
     </header>
+
+    <!-- Assessment Wizard Progress Stepper -->
+    <nav id="stepper-bar" class="wizard-stepper" style="display: none;">
+      <div class="step-item active" data-step="1">
+        <span class="step-circle">1</span>
+        <span class="step-label">Setup</span>
+      </div>
+      <div class="step-divider"></div>
+      <div class="step-item" data-step="2">
+        <span class="step-circle">2</span>
+        <span class="step-label">Paper / Key</span>
+      </div>
+      <div class="step-divider"></div>
+      <div class="step-item" data-step="3">
+        <span class="step-circle">3</span>
+        <span class="step-label">Attendance</span>
+      </div>
+      <div class="step-divider"></div>
+      <div class="step-item" data-step="4">
+        <span class="step-circle">4</span>
+        <span class="step-label">Camera Sweep</span>
+      </div>
+      <div class="step-divider"></div>
+      <div class="step-item" data-step="5">
+        <span class="step-circle">5</span>
+        <span class="step-label">Analysis & Exports</span>
+      </div>
+    </nav>
 
     <!-- Main Views Container -->
     <main class="views-wrapper">
       
-      <!-- VIEW 1: Class Selection -->
-      <section id="view-class-select" class="view-panel active">
-        <div class="card glass-card">
-          <div class="card-header">
-            <h2>Select Classroom</h2>
-            <p>Choose the school and active class section to load the roster.</p>
+      <!-- VIEW 0: Quick Authentication Screen -->
+      <section id="view-login" class="view-panel active">
+        <div class="card glass-card auth-card">
+          <div class="auth-header">
+            <div class="auth-icon-badge">🎓</div>
+            <h2>Pi Jam Classroom Portal</h2>
+            <p>Select your teacher profile or enter your unique Teacher / Supervisor ID.</p>
           </div>
+
+          <div class="quick-profiles-section">
+            <span class="field-hint">Quick Select Profile:</span>
+            <div class="profile-chips-grid">
+              <button class="profile-chip active" data-id="PJ-T101">
+                <span class="p-role">Teacher</span>
+                <span class="p-name">Anjali Sharma</span>
+                <span class="p-sub">CS & Math • Model School</span>
+              </button>
+              <button class="profile-chip" data-id="PJ-T102">
+                <span class="p-role">Teacher</span>
+                <span class="p-name">Rajesh Kulkarni</span>
+                <span class="p-sub">Science • Model School</span>
+              </button>
+              <button class="profile-chip chip-manager" data-id="PJ-M001">
+                <span class="p-role">Project Manager</span>
+                <span class="p-name">Ulfa Monitoring Lead</span>
+                <span class="p-sub">All Schools Oversight</span>
+              </button>
+            </div>
+          </div>
+
           <div class="form-group">
-            <label for="school-select">School</label>
-            <select id="school-select" class="custom-select">
-              <option value="">Loading schools...</option>
-            </select>
+            <label for="input-user-id">Teacher / Supervisor ID</label>
+            <input type="text" id="input-user-id" class="custom-input" value="PJ-T101" placeholder="e.g. PJ-T101">
           </div>
+
           <div class="form-group">
-            <label for="class-select">Class & Section</label>
-            <select id="class-select" class="custom-select" disabled>
-              <option value="">Select a school first</option>
-            </select>
+            <label for="input-user-pin">Security PIN (Default: 1234, Manager: 0000)</label>
+            <input type="password" id="input-user-pin" class="custom-input" value="1234" placeholder="4-digit PIN">
           </div>
-          <button id="btn-start-setup" class="btn btn-primary btn-block" disabled>
-            Continue to Attendance & Setup &rarr;
+
+          <button id="btn-submit-login" class="btn btn-primary btn-block">
+            Sign In & Open Dashboard &rarr;
           </button>
         </div>
       </section>
 
-      <!-- VIEW 2: Attendance & Answer Key Setup -->
+      <!-- VIEW 1: Quiz Metadata Setup -->
+      <section id="view-setup" class="view-panel">
+        <div class="card glass-card">
+          <div class="card-header">
+            <h2>Step 1: Quiz Information</h2>
+            <p>Set up quiz metadata and specify how many questions will be assessed.</p>
+          </div>
+
+          <div class="form-grid">
+            <!-- School name: pre-filled from teacher login profile, editable -->
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label for="setup-school-name">School Name *</label>
+              <input type="text" id="setup-school-name" class="custom-input" placeholder="e.g. Pi Jam Partner Model School">
+            </div>
+
+            <div class="form-group">
+              <label for="setup-quiz-name">Quiz Name / Topic *</label>
+              <input type="text" id="setup-quiz-name" class="custom-input" value="Unit 3: Loops & Conditionals" placeholder="e.g. Loops & Iterations Check">
+            </div>
+
+            <div class="form-group">
+              <label for="setup-subject">Subject</label>
+              <select id="setup-subject" class="custom-select">
+                <option value="Computer Science" selected>Computer Science</option>
+                <option value="Mathematics">Mathematics</option>
+                <option value="General Science">General Science</option>
+                <option value="Computational Thinking">Computational Thinking</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="setup-date">Assessment Date</label>
+              <input type="date" id="setup-date" class="custom-input">
+            </div>
+
+            <div class="form-group">
+              <label for="setup-class-select">Class & Section *</label>
+              <select id="setup-class-select" class="custom-select">
+                <option value="">Loading classes...</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Dynamic Number of Questions Stepper (Default 5) -->
+          <div class="question-counter-card">
+            <div class="counter-info">
+              <h3>Number of Questions</h3>
+              <p>Defaults to 5 questions. Adjust to fit today's classroom plan.</p>
+            </div>
+            <div class="stepper-widget">
+              <button id="btn-q-dec" class="stepper-btn" type="button" aria-label="Decrease questions">−</button>
+              <div class="stepper-display">
+                <span id="display-q-count">5</span>
+                <span class="stepper-unit">Questions</span>
+              </div>
+              <button id="btn-q-inc" class="stepper-btn" type="button" aria-label="Increase questions">+</button>
+            </div>
+          </div>
+
+          <div class="action-footer">
+            <button id="btn-to-question-mode" class="btn btn-primary btn-block">
+              Continue to Question Paper Setup &rarr;
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 2: Question Mode & PDF Upload -->
+      <section id="view-question-mode" class="view-panel">
+        <div class="card glass-card">
+          <div class="card-header">
+            <h2>Step 2: Question Paper & Early Key</h2>
+            <p>Select whether questions are on the blackboard or from a pre-defined PDF.</p>
+          </div>
+
+          <!-- Two Mode Cards (Case 1 vs Case 2) -->
+          <div class="mode-cards-grid">
+            <!-- Case 1: Blackboard Mode -->
+            <div id="mode-card-blackboard" class="mode-card active">
+              <div class="mode-icon">📝</div>
+              <div class="mode-content">
+                <h3>Case 1: Blackboard / Oral Mode</h3>
+                <p>Teacher writes questions on the board or speaks them aloud. No PDF file needed.</p>
+              </div>
+              <div class="mode-check">✓</div>
+            </div>
+
+            <!-- Case 2: PDF Upload Mode -->
+            <div id="mode-card-pdf" class="mode-card">
+              <div class="mode-icon">📄</div>
+              <div class="mode-content">
+                <h3>Case 2: Upload Question Paper PDF</h3>
+                <p>Upload the question paper PDF to store in the database and merge into the final report.</p>
+              </div>
+              <div class="mode-check">✓</div>
+            </div>
+          </div>
+
+          <!-- Dedicated PDF Upload Container (Appears when Case 2 is selected) -->
+          <div id="pdf-upload-container" class="pdf-upload-box" style="display: none;">
+            <div class="upload-dropzone" id="pdf-dropzone">
+              <div class="dropzone-icon">☁️</div>
+              <h4>Drag & drop Question Paper PDF or click to browse</h4>
+              <p class="dropzone-hint">Supports PDF files up to 25MB for archival and report merging</p>
+              <input type="file" id="pdf-file-input" accept="application/pdf" style="display: none;">
+              <button id="btn-browse-pdf" class="btn btn-secondary btn-sm" type="button">Select PDF Document</button>
+            </div>
+            
+            <div id="pdf-file-status" class="file-status-badge" style="display: none;">
+              <span class="file-icon">📑</span>
+              <span id="pdf-filename-label" class="file-name">filename.pdf</span>
+              <span id="pdf-filesize-label" class="file-size">(0 KB)</span>
+              <button id="btn-remove-pdf" class="btn-remove" title="Remove PDF">✕</button>
+            </div>
+          </div>
+
+          <!-- Optional Pre-set Answer Key (Dynamic Q1..QN) -->
+          <div class="early-key-card">
+            <div class="early-key-header">
+              <div class="early-key-title">
+                <h3>Pre-set Answer Key (Optional)</h3>
+                <span class="badge-optional">Optional</span>
+              </div>
+              <p class="field-hint">You can pre-fill correct answers now, or leave them for the end. You can always correct any mistake later!</p>
+            </div>
+            <div id="early-key-grid" class="dynamic-key-grid">
+              <!-- Dynamically populated Q1..QN pills -->
+            </div>
+          </div>
+
+          <div class="action-footer flex-between">
+            <button id="btn-back-to-setup" class="btn btn-secondary">&larr; Back to Setup</button>
+            <button id="btn-to-attendance" class="btn btn-primary">
+              Continue to Attendance &rarr;
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 3: Attendance Check -->
       <section id="view-attendance" class="view-panel">
         <div class="card glass-card">
           <div class="card-header flex-between">
             <div>
-              <h2>Attendance Check</h2>
-              <p>Tap any student who is absent today to exclude them from the 5 questions.</p>
+              <h2>Step 3: Attendance Check</h2>
+              <p>Tap any student who is absent today to exclude them from the quiz scorecards.</p>
             </div>
             <div class="attendance-counter">
               <span id="present-count">30</span> / <span id="total-count">30</span> Present
@@ -75,56 +275,16 @@
             <!-- Dynamically populated roster roll number chips -->
           </div>
 
-          <!-- Answer Key Pre-configuration -->
-          <div class="answer-key-box">
-            <div class="answer-key-header">
-              <h3>Answer Key (5 Questions)</h3>
-              <span class="hint">You can also edit this anytime on the results screen</span>
-            </div>
-            <div class="answer-key-grid">
-              <div class="key-item">
-                <label>Q1</label>
-                <select id="key-setup-1" class="key-select">
-                  <option value="A" selected>A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option>
-                </select>
-              </div>
-              <div class="key-item">
-                <label>Q2</label>
-                <select id="key-setup-2" class="key-select">
-                  <option value="A">A</option><option value="B" selected>B</option><option value="C">C</option><option value="D">D</option>
-                </select>
-              </div>
-              <div class="key-item">
-                <label>Q3</label>
-                <select id="key-setup-3" class="key-select">
-                  <option value="A">A</option><option value="B">B</option><option value="C" selected>C</option><option value="D">D</option>
-                </select>
-              </div>
-              <div class="key-item">
-                <label>Q4</label>
-                <select id="key-setup-4" class="key-select">
-                  <option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D" selected>D</option>
-                </select>
-              </div>
-              <div class="key-item">
-                <label>Q5</label>
-                <select id="key-setup-5" class="key-select">
-                  <option value="A" selected>A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div class="action-footer">
-            <button id="btn-back-to-class" class="btn btn-secondary">&larr; Back</button>
-            <button id="btn-begin-assessment" class="btn btn-accent">
-              Start Assessment (Question 1 of 5) &rarr;
+          <div class="action-footer flex-between">
+            <button id="btn-back-to-mode" class="btn btn-secondary">&larr; Back</button>
+            <button id="btn-begin-sweep" class="btn btn-accent">
+              Begin Camera Sweep (Q1) &rarr;
             </button>
           </div>
         </div>
       </section>
 
-      <!-- VIEW 3: Live Camera Scanner -->
+      <!-- VIEW 4: Live Camera Vision Scanner HUD -->
       <section id="view-scanner" class="view-panel">
         <!-- Floating Live HUD Bar -->
         <div class="scanner-hud-bar">
@@ -133,7 +293,7 @@
           </div>
           <div class="hud-item progress-gauge">
             <div class="progress-ring-container">
-              <span id="hud-scanned-count">0</span> / <span id="hud-expected-count">30</span>
+              <span id="hud-scanned-count">0</span> / <span id="hud-expected-count">30</span> Cards
             </div>
             <div class="progress-bar-bg">
               <div id="hud-progress-fill" class="progress-bar-fill" style="width: 0%;"></div>
@@ -141,7 +301,8 @@
           </div>
           <div class="hud-item hud-actions">
             <button id="btn-switch-camera" class="btn-icon" title="Switch Camera">&#x21bb;</button>
-            <button id="btn-lock-poll" class="btn btn-accent btn-sm">Lock & Tally</button>
+            <button id="btn-view-pdf-peek" class="btn-icon" title="Peek Question PDF" style="display: none;">📄</button>
+            <button id="btn-next-question-sweep" class="btn btn-accent btn-sm">Next Q &rarr;</button>
           </div>
         </div>
 
@@ -155,10 +316,10 @@
           <div id="anomaly-toast" class="hud-anomaly-toast" style="display: none;"></div>
         </div>
 
-        <!-- Missing Students Drawer / Banner -->
+        <!-- Missing Students Drawer / Real-time missing rolls indicator -->
         <div class="missing-students-banner">
           <div class="missing-header">
-            <span>Missing Roll Numbers (<span id="missing-count">0</span>):</span>
+            <span>Missing Roll Numbers (<span id="missing-count">0</span> remaining):</span>
           </div>
           <div id="missing-pills-list" class="missing-pills-container">
             <!-- Dynamic missing roll number chips -->
@@ -166,86 +327,45 @@
         </div>
       </section>
 
-      <!-- VIEW 4: Single Question Summary -->
-      <section id="view-summary" class="view-panel">
-        <div class="card glass-card">
-          <div class="card-header flex-between">
-            <div>
-              <h2 id="summary-question-title">Question 1 of 5 Completed!</h2>
-              <p id="summary-session-info">Responses stored. Ready for next question.</p>
-            </div>
-            <div class="badge badge-class" id="summary-correct-badge">
-              Key: Option <b id="summary-key-letter" style="margin-left: 4px;">A</b>
-            </div>
-          </div>
-
-          <!-- Answer Distribution Chart -->
-          <div class="distribution-card">
-            <h3>Vote Distribution</h3>
-            <div class="chart-bars">
-              <div class="chart-col">
-                <div class="bar-track">
-                  <div id="bar-A" class="bar-fill bar-red" style="height: 0%;">
-                    <span id="val-A" class="bar-val">0</span>
-                  </div>
-                </div>
-                <span class="bar-label label-red">A</span>
-              </div>
-              <div class="chart-col">
-                <div class="bar-track">
-                  <div id="bar-B" class="bar-fill bar-yellow" style="height: 0%;">
-                    <span id="val-B" class="bar-val">0</span>
-                  </div>
-                </div>
-                <span class="bar-label label-yellow">B</span>
-              </div>
-              <div class="chart-col">
-                <div class="bar-track">
-                  <div id="bar-C" class="bar-fill bar-blue" style="height: 0%;">
-                    <span id="val-C" class="bar-val">0</span>
-                  </div>
-                </div>
-                <span class="bar-label label-blue">C</span>
-              </div>
-              <div class="chart-col">
-                <div class="bar-track">
-                  <div id="bar-D" class="bar-fill bar-green" style="height: 0%;">
-                    <span id="val-D" class="bar-val">0</span>
-                  </div>
-                </div>
-                <span class="bar-label label-green">D</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Student Responses Breakdown -->
-          <div class="responses-breakdown-card">
-            <h3>Student Responses</h3>
-            <div id="summary-responses-grid" class="summary-responses-grid"></div>
-          </div>
-
-          <div class="action-footer flex-col">
-            <button id="btn-next-question" class="btn btn-primary btn-block">
-              Proceed to Question 2 of 5 &rarr;
-            </button>
-            <button id="btn-finish-early" class="btn btn-secondary btn-block">
-              Finish Assessment & View Final Analysis &rarr;
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <!-- VIEW 5: Final Assessment Analysis Dashboard -->
+      <!-- VIEW 5: Final Review & Live Reactive Analytics Dashboard -->
       <section id="view-analysis" class="view-panel">
         <div class="card glass-card">
           <div class="card-header flex-between">
             <div>
-              <h2>Assessment Performance Analysis</h2>
-              <p id="analysis-session-subtitle">Pi Jam FAST Assessment Results</p>
+              <h2 id="analysis-quiz-title">Assessment Analytics & Scorecards</h2>
+              <p id="analysis-session-subtitle">Pi Jam FAST Results</p>
             </div>
-            <button id="btn-start-new-session" class="btn btn-secondary btn-sm">
-              Start New Assessment
-            </button>
+            <div class="action-buttons-group">
+              <button id="btn-start-new-session" class="btn btn-secondary btn-sm">
+                + New Quiz
+              </button>
+            </div>
+          </div>
+
+          <!-- Interactive Answer Key Editor (Changing here updates analytics reactively!) -->
+          <div class="analysis-key-editor-card">
+            <div class="editor-header">
+              <div>
+                <h3>Answer Key Review</h3>
+                <span class="hint">Made a mistake earlier? Click any option to re-score the entire class instantly in real time!</span>
+              </div>
+              <span id="recalc-indicator" class="badge badge-accent" style="display: none;">✓ Recalculated</span>
+            </div>
+            <div id="final-key-grid" class="dynamic-key-grid">
+              <!-- Dynamically populated Q1..QN answer key interactive pills -->
+            </div>
+          </div>
+
+          <!-- 1-Click Export Actions Toolbar -->
+          <div class="export-actions-toolbar">
+            <div class="export-buttons-group">
+              <a id="btn-download-pdf-merged" class="btn btn-export-pdf" href="#" target="_blank">
+                <span class="export-icon">📥</span> Download Merged PDF Dossier (Scorecard + PDF)
+              </a>
+              <a id="btn-download-excel" class="btn btn-export-excel" href="#" target="_blank">
+                <span class="export-icon">📊</span> Download Excel Sheet (.xlsx)
+              </a>
+            </div>
           </div>
 
           <!-- High-Level Performance Metrics -->
@@ -265,60 +385,139 @@
               <div class="mastery-mini-pills">
                 <span class="pill-high">🟢 High: <b id="cnt-high">0</b></span>
                 <span class="pill-mod">🟡 Moderate: <b id="cnt-mod">0</b></span>
-                <span class="pill-low">🔴 Needs Help: <b id="cnt-low">0</b></span>
+                <span class="pill-low">🔴 Critical Help: <b id="cnt-low">0</b></span>
               </div>
             </div>
           </div>
 
-          <!-- Interactive Answer Key Editor -->
-          <div class="analysis-key-editor">
-            <div class="flex-between">
-              <h3>Answer Key (Adjust to re-score)</h3>
-              <button id="btn-recalculate-scores" class="btn btn-accent btn-sm">
-                Recalculate Scores
-              </button>
-            </div>
-            <div class="answer-key-grid">
-              <div class="key-item"><label>Q1</label><select id="key-edit-1" class="key-select"><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select></div>
-              <div class="key-item"><label>Q2</label><select id="key-edit-2" class="key-select"><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select></div>
-              <div class="key-item"><label>Q3</label><select id="key-edit-3" class="key-select"><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select></div>
-              <div class="key-item"><label>Q4</label><select id="key-edit-4" class="key-select"><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select></div>
-              <div class="key-item"><label>Q5</label><select id="key-edit-5" class="key-select"><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select></div>
-            </div>
-          </div>
-
-          <!-- Question Accuracy Breakdown -->
+          <!-- Question-by-Question Distractor Misconceptions -->
           <div class="questions-perf-card">
-            <h3>Question-by-Question Accuracy</h3>
+            <h3>Question Accuracy & Distractor Misconceptions</h3>
             <div id="questions-perf-list" class="questions-perf-list">
-              <!-- Dynamically populated question cards -->
+              <!-- Dynamically populated question accuracy cards -->
             </div>
           </div>
 
-          <!-- Full Student Scorecards Table -->
+          <!-- Full Student Scorecard Matrix Table -->
           <div class="scorecards-card">
             <h3>Student Performance Matrix</h3>
             <div class="table-responsive">
               <table class="scorecard-table">
-                <thead>
-                  <tr>
-                    <th>Roll No</th>
-                    <th>Q1</th>
-                    <th>Q2</th>
-                    <th>Q3</th>
-                    <th>Q4</th>
-                    <th>Q5</th>
-                    <th>Score</th>
-                    <th>Mastery</th>
-                  </tr>
+                <thead id="scorecard-table-head">
+                  <!-- Dynamic headers: Roll, Name, Q1..QN, Score, %, Mastery -->
                 </thead>
                 <tbody id="scorecard-table-body">
-                  <!-- Dynamically populated student rows -->
+                  <!-- Dynamically populated student scorecard rows -->
                 </tbody>
               </table>
             </div>
           </div>
 
+        </div>
+      </section>
+
+      <!-- VIEW 6: Teacher Historical Dashboard (Day/Week/Month up to 3 Months) -->
+      <section id="view-history" class="view-panel">
+        <div class="card glass-card">
+          <div class="card-header flex-between">
+            <div>
+              <h2>Teacher Assessment History</h2>
+              <p>Rolling 90-day archive of conducted quizzes and performance trends.</p>
+            </div>
+            <button id="btn-history-back" class="btn btn-secondary btn-sm">&larr; Back to Dashboard</button>
+          </div>
+
+          <!-- Time Filter Pills (Day / Week / Month) -->
+          <div class="filter-pills-bar">
+            <button class="filter-pill active" data-range="month">Month-Wise</button>
+            <button class="filter-pill" data-range="week">Week-Wise</button>
+            <button class="filter-pill" data-range="day">Day-Wise</button>
+          </div>
+
+          <!-- Historical Summary KPIs -->
+          <div class="metrics-row">
+            <div class="metric-card">
+              <span class="metric-label">Total Quizzes Conducted</span>
+              <span id="hist-total-quizzes" class="metric-val">0</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Students Evaluated</span>
+              <span id="hist-total-students" class="metric-val">0</span>
+            </div>
+            <div class="metric-card highlight-metric">
+              <span class="metric-label">Cumulative Average</span>
+              <span id="hist-overall-avg" class="metric-val">0%</span>
+            </div>
+          </div>
+
+          <!-- Past Quizzes Timeline List -->
+          <div class="history-timeline-section">
+            <h3>Assessment Archives (Last 90 Days)</h3>
+            <div id="history-list" class="history-list-container">
+              <!-- Dynamically populated past quiz cards -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 7: Project Manager (Supervisor) Dashboard -->
+      <section id="view-manager" class="view-panel">
+        <div class="card glass-card">
+          <div class="card-header flex-between">
+            <div>
+              <h2>Supervisor Oversight Dashboard</h2>
+              <p>Cross-school teacher monitoring and aggregate formative assessment metrics.</p>
+            </div>
+            <button id="btn-manager-back" class="btn btn-secondary btn-sm">&larr; Back to App</button>
+          </div>
+
+          <!-- Manager Summary Metrics -->
+          <div class="metrics-row">
+            <div class="metric-card">
+              <span class="metric-label">Partner Schools</span>
+              <span id="mgr-total-schools" class="metric-val">0</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Active Teachers</span>
+              <span id="mgr-total-teachers" class="metric-val">0</span>
+            </div>
+            <div class="metric-card highlight-metric">
+              <span class="metric-label">Assessments Conducted</span>
+              <span id="mgr-total-quizzes" class="metric-val">0</span>
+            </div>
+          </div>
+
+          <!-- Multi-Teacher Oversight Table -->
+          <div class="scorecards-card">
+            <h3>Teacher Activity & Performance Table</h3>
+            <div class="table-responsive">
+              <table class="scorecard-table">
+                <thead>
+                  <tr>
+                    <th>Teacher ID</th>
+                    <th>Teacher Name</th>
+                    <th>School</th>
+                    <th>Subject</th>
+                    <th>Quizzes Conducted</th>
+                    <th>Students Reached</th>
+                    <th>Avg Performance</th>
+                    <th>Last Active</th>
+                  </tr>
+                </thead>
+                <tbody id="manager-teachers-table-body">
+                  <!-- Dynamically populated teacher rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Recent Assessments Activity Feed -->
+          <div class="history-timeline-section" style="margin-top: 1.5rem;">
+            <h3>Recent Assessments Across Network</h3>
+            <div id="manager-recent-feed" class="history-list-container">
+              <!-- Recent feed cards -->
+            </div>
+          </div>
         </div>
       </section>
 

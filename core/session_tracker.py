@@ -13,11 +13,11 @@ class SessionTracker:
     - Computes real-time confirmed responses and missing roll numbers
     """
 
-    def __init__(self, active_roster, absentees=None, debounce_frames=3, window_size=5):
+    def __init__(self, active_roster, absentees=None, debounce_frames=1, window_size=4):
         """
         active_roster: list of integer roll numbers (e.g., list(range(1, 31)))
         absentees: list of integer roll numbers marked absent
-        debounce_frames: minimum consecutive consistent frames to lock/update an answer
+        debounce_frames: minimum consecutive consistent frames to lock/update an answer (1 = instant capture during camera sweeps)
         window_size: sliding history window per card
         """
         self.roster = sorted(list(set(active_roster)))
@@ -133,17 +133,21 @@ class SessionTracker:
             if ans in distribution:
                 distribution[ans] += 1
 
+        confirmed_dict = {
+            roll_no: self.confirmed[roll_no]["answer"]
+            for roll_no in sorted(confirmed_ids)
+            if roll_no in self.roster
+        }
+
         return {
             "scanned_count": scanned_count,
             "total_expected": total_expected,
             "percentage": percentage,
             "is_complete": scanned_count >= total_expected and total_expected > 0,
             "missing_roll_numbers": missing_roll_numbers,
-            "confirmed_responses": {
-                roll_no: self.confirmed[roll_no]["answer"]
-                for roll_no in sorted(confirmed_ids)
-                if roll_no in self.roster
-            },
+            "missing_students": missing_roll_numbers, # For frontend compatibility
+            "confirmed_responses": confirmed_dict,
+            "confirmed_answers": confirmed_dict,     # For frontend compatibility
             "distribution": distribution,
             "anomalies": self.anomalies[-5:] if self.anomalies else [],
         }

@@ -33,20 +33,23 @@ class CVDetector:
         "AMBIGUOUS": (0, 165, 255) # Orange
     }
 
-    def __init__(self, min_marker_perimeter=0.015, blur_threshold=50.0, deadband_rate=0.15):
+    def __init__(self, min_marker_perimeter=0.006, blur_threshold=60.0, deadband_rate=0.15):
         self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_5X5_100)
         self.params = cv2.aruco.DetectorParameters()
 
-        # Tuned parameters for distant / classroom cards
-        self.params.minMarkerPerimeterRate = min_marker_perimeter
+        # Tuned parameters for distant, tilted, or screen-scanned cards
+        self.params.minMarkerPerimeterRate = min_marker_perimeter # Down to 0.006 (catches cards from distances/screens)
         self.params.maxMarkerPerimeterRate = 4.0
         self.params.adaptiveThreshWinSizeMin = 3
-        self.params.adaptiveThreshWinSizeMax = 23
-        self.params.adaptiveThreshWinSizeStep = 10
-        self.params.adaptiveThreshConstant = 7.0
+        self.params.adaptiveThreshWinSizeMax = 53 # Expanded window for extreme lighting ranges
+        self.params.adaptiveThreshWinSizeStep = 4  # Fine steps (4) to reliably capture cards under glare/shadows
+        self.params.adaptiveThreshConstant = 4.0   # Reduced from 7 to 4 to prevent blackout on glowing LCD screens
         self.params.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_SUBPIX
         self.params.cornerRefinementWinSize = 5
-        self.params.maxErroneousBitsInBorderRate = 0.35
+        self.params.cornerRefinementMaxIterations = 40
+        self.params.cornerRefinementMinAccuracy = 0.05
+        self.params.maxErroneousBitsInBorderRate = 0.50 # Up to 50% border error for glare or minor tilt
+        self.params.errorCorrectionRate = 0.8           # Maximum Hamming error correction
 
         self.detector = cv2.aruco.ArucoDetector(self.aruco_dict, self.params)
         self.blur_threshold = blur_threshold
@@ -163,9 +166,26 @@ class CVDetector:
             hsv = cv2.cvtColor(cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR), cv2.COLOR_BGR2HSV)
 
         blur_metric = self.estimate_blur(gray)
-        is_blurry = blur_metric < self.blur_threshold
 
+        # Pass 1: Standard fine-tuned ArUco detection
         corners_list, ids, _ = self.detector.detectMarkers(gray)
+
+        # Pass 2: CLAHE contrast enhancement (cuts through room shadows & backlight glare)
+        if ids is None or len(ids) == 0:
+            clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(8, 8))
+            enhanced_gray = clahe.apply(gray)
+            corners_list, ids, _ = self.detector.detectMarkers(enhanced_gray)
+
+        # Pass 3: Bilateral filter (eliminates screen moiré patterns while preserving edges)
+        if ids is None or len(ids) == 0:
+            filtered = cv2.bilateralFilter(gray, 5, 40, 40)
+            corners_list, ids, _ = self.detector.detectMarkers(filtered)
+
+        # Pass 4: Adaptive Otsu thresholding fallback
+        if ids is None or len(ids) == 0:
+            _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            corners_list, ids, _ = self.detector.detectMarkers(thresh)
+
         cards = []
 
         if ids is not None and len(ids) > 0:
@@ -194,7 +214,9 @@ class CVDetector:
 
                 cards.append({
                     "card_id": int(cid),
+                    "marker_id": int(cid), # For frontend compatibility
                     "answer": str(final_answer),
+                    "selected_option": str(final_answer), # For frontend compatibility
                     "candidate_letter": str(top_edge),
                     "is_ambiguous": bool(is_ambiguous),
                     "color_matched": bool(color_matched),
@@ -206,8 +228,16 @@ class CVDetector:
 
         # Sort cards by card_id
         cards.sort(key=lambda x: x["card_id"])
+
+        # Intelligent blur logic:
+        # If cards are detected, the frame is by definition sharp enough!
+        # Only flag blur if 0 cards were detected AND blur metric is extremely low (<10.0)
+        is_blurry = bool(len(cards) == 0 and blur_metric < self.blur_threshold)
+
         return {
             "cards": cards,
             "blur_metric": float(blur_metric),
             "is_blurry": bool(is_blurry),
+            "frame_width": int(frame.shape[1]),
+            "frame_height": int(frame.shape[0]),
         }

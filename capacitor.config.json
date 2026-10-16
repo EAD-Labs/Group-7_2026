@@ -1,0 +1,19 @@
+{
+  "appId": "org.pijam.fast.assessment",
+  "appName": "Pi Jam FAST Assessment",
+  "webDir": "frontend",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "plugins": {
+    "Camera": {
+      "permissions": ["camera"]
+    }
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": true
+  }
+}
