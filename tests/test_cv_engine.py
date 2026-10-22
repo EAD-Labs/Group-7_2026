@@ -15,6 +15,9 @@ class TestCVEngineAndTracker(unittest.TestCase):
         cls.base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         cls.card14_path = os.path.join(cls.base_dir, "output", "front", "card_14_front.png")
         cls.card14_img = cv2.imread(cls.card14_path)
+        if cls.card14_img is not None:
+            # Add quiet zone border (ArUco markers require outer margin to resolve outer black edge)
+            cls.card14_img = cv2.copyMakeBorder(cls.card14_img, 50, 50, 50, 50, cv2.BORDER_CONSTANT, value=[255, 255, 255])
 
     def test_single_card_upright(self):
         """Card 14 upright should decode as ID=14 and Answer=A with color matched."""
