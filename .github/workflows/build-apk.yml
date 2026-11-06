@@ -1,0 +1,84 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    name: Build & Release Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Node Dependencies
+        run: npm ci || npm install
+
+      - name: Add Android Native Project & Sync
+        run: |
+          npx cap add android || true
+          npx cap sync android
+
+      - name: Build Android Debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Prepare APK Asset
+        run: |
+          mkdir -p release-output
+          cp android/app/build/outputs/apk/debug/app-debug.apk release-output/PiJam-FAST-Assessment.apk
+          echo "APK build complete: $(ls -lh release-output/PiJam-FAST-Assessment.apk)"
+
+      - name: Upload APK as Workflow Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PiJam-FAST-Assessment-APK
+          path: release-output/PiJam-FAST-Assessment.apk
+          retention-days: 90
+
+      - name: Publish APK to GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
+        with:
+          tag_name: v2.0.0-apk
+          name: "Pi Jam FAST Android APK Release v2.0.0"
+          body: |
+            ### 📱 Pi Jam FAST Assessment Platform — Android APK
+            
+            This is the official compiled Android application package (`.apk`) for the **Pi Jam FAST** assessment platform.
+            
+            - **Target Platform:** Android 8.0+ (API 26+)
+            - **Cloud Backend:** Pre-configured to `https://pi-jam-fast.onrender.com`
+            - **Hardware Access:** Full WebRTC Camera support for instant fiducial card scanning.
+            
+            #### How to Install:
+            1. Download `PiJam-FAST-Assessment.apk` directly on your Android phone or tablet.
+            2. Tap the downloaded file to install (allow "Install from unknown sources" if prompted by your browser).
+            3. Launch the app and grant camera permission when prompted.
+          files: release-output/PiJam-FAST-Assessment.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

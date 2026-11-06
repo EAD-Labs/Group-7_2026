@@ -678,6 +678,18 @@ if os.path.exists(frontend_dir):
     def serve_frontend_root():
         return FileResponse(os.path.join(frontend_dir, "index.html"))
 
+    @app.get("/styles.css")
+    def serve_styles():
+        return FileResponse(os.path.join(frontend_dir, "styles.css"))
+
+    @app.get("/config.js")
+    def serve_config():
+        return FileResponse(os.path.join(frontend_dir, "config.js"))
+
+    @app.get("/app.js")
+    def serve_app():
+        return FileResponse(os.path.join(frontend_dir, "app.js"))
+
     @app.get("/intro")
     @app.get("/about")
     def serve_project_introduction():

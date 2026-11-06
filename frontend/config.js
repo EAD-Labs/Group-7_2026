@@ -17,23 +17,19 @@
  */
 
 (function () {
-  // ─── CHANGE THIS for production cloud deployment ───────────────────────────
-  // Leave empty string "" for local development (server running on same machine).
-  // Set to your Render URL for the Android APK build.
-  // Example: "https://pi-jam-fast.onrender.com"
-  const PRODUCTION_API_URL = "";
+  // ─── Production Cloud URL (for Android APK and Deployed Web) ─────────────
+  const PRODUCTION_API_URL = "https://pi-jam-fast.onrender.com";
   // ──────────────────────────────────────────────────────────────────────────
 
-  // Auto-detect: if running inside a Capacitor APK (android/ios), or if the
-  // URL is file:// (local APK webview), use the production URL.
-  const isCapacitor =
-    window.location.protocol === "capacitor:" ||
-    window.location.protocol === "file:" ||
-    (typeof window.Capacitor !== "undefined" && window.Capacitor.isNativePlatform?.());
+  // Detect if running inside a local development server (python run_server.py on port 8000)
+  const isLocalDevServer =
+    typeof window !== "undefined" &&
+    window.location &&
+    (window.location.port === "8000" || window.location.port === "8080");
 
-  const resolvedBase = isCapacitor && PRODUCTION_API_URL
-    ? PRODUCTION_API_URL
-    : (PRODUCTION_API_URL || ""); // Empty = same-origin (local server)
+  // If running on local development server (port 8000) -> use same-origin ""
+  // In ALL other cases (Capacitor Android APK, live cloud deployment) -> use PRODUCTION_API_URL
+  const resolvedBase = isLocalDevServer ? "" : PRODUCTION_API_URL;
 
   /**
    * window.API_BASE — HTTP base for all REST API calls.

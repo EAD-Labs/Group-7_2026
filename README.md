@@ -3,14 +3,16 @@
 
 ---
 
-> ### 🌐 [Click Here to View the Interactive Project Introduction Webpage](https://ead-labs.github.io/Group-7_2026/)
-> **A simple, visual introduction to the educational problem, target users, and application mechanic for a non-technical audience.**  
-> *(If running locally or deployed on Render, also available directly at [`/intro`](http://localhost:8000/intro))*
+> ### 🌐 [Click Here to View the Interactive Project Introduction Webpage](https://htmlpreview.github.io/?https://github.com/EAD-Labs/Group-7_2026/blob/main/docs/index.html)
+> **A simple, visual walkthrough explaining the educational problem, target users, and application mechanics for a non-technical audience.**  
+> *(You can also browse the source file directly at [`docs/index.html`](docs/index.html) or run locally at [`/intro`](http://localhost:8000/intro))*
 
 ---
 
-[![Project Introduction Page](https://img.shields.io/badge/Project%20Overview-Webpage-indigo?style=for-the-badge&logo=googlechrome&logoColor=white)](https://ead-labs.github.io/Group-7_2026/)
-[![Live App Deployment](https://img.shields.io/badge/Deployment-Render%20Cloud-black?style=for-the-badge&logo=render&logoColor=white)](https://pi-jam-fast.onrender.com)
+[![Project Introduction Page](https://img.shields.io/badge/Project%20Overview-Webpage-indigo?style=for-the-badge&logo=googlechrome&logoColor=white)](https://htmlpreview.github.io/?https://github.com/EAD-Labs/Group-7_2026/blob/main/docs/index.html)
+[![Live App Deployment](https://img.shields.io/badge/Live%20App-Render%20Cloud-black?style=for-the-badge&logo=render&logoColor=white)](https://pi-jam-fast.onrender.com)
+[![GitHub Releases](https://img.shields.io/badge/Mobile-Android%20Releases-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/EAD-Labs/Group-7_2026/releases)
+[![Download APK](https://img.shields.io/badge/Download-Android%20APK-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/EAD-Labs/Group-7_2026/releases/download/v2.0.0-apk/PiJam-FAST-Assessment.apk)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-REST%20%26%20WebSocket-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![OpenCV](https://img.shields.io/badge/OpenCV-Headless%20CV-5C3EE8.svg?style=for-the-badge&logo=opencv&logoColor=white)](https://opencv.org/)
@@ -50,13 +52,23 @@ In resource-constrained educational environments (such as Indian Zilla Parishad 
 
 ## 3. How to Access & Run the Application
 
-### Option A: Access Live Cloud Deployment (Render)
+### Option A: Access Live Cloud Web App (Zero Install)
 The application is pre-configured and live on **Render**:
 - **Live Web Application:** [https://pi-jam-fast.onrender.com](https://pi-jam-fast.onrender.com)
-- **Project Introduction Page:** [https://pi-jam-fast.onrender.com/intro](https://pi-jam-fast.onrender.com/intro) (or via GitHub Pages [https://ead-labs.github.io/Group-7_2026/](https://ead-labs.github.io/Group-7_2026/))
+- **Project Introduction Page:** [Live Web Preview](https://htmlpreview.github.io/?https://github.com/EAD-Labs/Group-7_2026/blob/main/docs/index.html) *(or view [`docs/index.html`](docs/index.html))*
 - **Health Check Endpoint:** [https://pi-jam-fast.onrender.com/api/health](https://pi-jam-fast.onrender.com/api/health)
 
-### Option B: Run Locally on Your Machine
+### Option B: Mobile Access & Android APK
+Professors and evaluators can experience the mobile assessment in two ways:
+1. **Instant Mobile Browser (Recommended for Quick Grading):**
+   - Open **[https://pi-jam-fast.onrender.com](https://pi-jam-fast.onrender.com)** directly on any smartphone (Android or iOS).
+   - Works immediately with zero install, full camera permissions, and real-time response.
+2. **Dedicated Android Native APK:**
+   - **Download APK:** [PiJam-FAST-Assessment.apk](https://github.com/EAD-Labs/Group-7_2026/releases/download/v2.0.0-apk/PiJam-FAST-Assessment.apk)
+   - **Build status and artifact fallback:** [GitHub Actions APK workflow](https://github.com/EAD-Labs/Group-7_2026/actions/workflows/build-apk.yml)
+   - *Note:* The APK package (`PiJam-FAST-Assessment.apk`) is automatically built and attached to GitHub Releases by the repository's GitHub Actions build pipeline (`.github/workflows/build-apk.yml`) on `main`.
+
+### Option C: Run Locally on Your Machine
 
 #### Prerequisites
 - **Python 3.10+**
@@ -168,4 +180,4 @@ This project is configured out of the box for cloud hosting on **Render** using 
 - **Team:** FAST (Group 7)
 - **Partner Organization:** Pi Jam Foundation
 - **Repository:** [https://github.com/EAD-Labs/Group-7_2026](https://github.com/EAD-Labs/Group-7_2026)
-- **Interactive Overview:** [https://ead-labs.github.io/Group-7_2026/](https://ead-labs.github.io/Group-7_2026/)
+- **Interactive Overview:** [Live Web Preview](https://htmlpreview.github.io/?https://github.com/EAD-Labs/Group-7_2026/blob/main/docs/index.html)
