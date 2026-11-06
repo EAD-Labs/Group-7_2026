@@ -4,7 +4,7 @@
 
 services:
   - type: web
-    name: pijam-fast
+    name: pi-jam-fast
     env: python
     region: oregon
     plan: free

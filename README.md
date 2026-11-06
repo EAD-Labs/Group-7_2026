@@ -10,7 +10,7 @@
 ---
 
 [![Project Introduction Page](https://img.shields.io/badge/Project%20Overview-Webpage-indigo?style=for-the-badge&logo=googlechrome&logoColor=white)](https://ead-labs.github.io/Group-7_2026/)
-[![Live App Deployment](https://img.shields.io/badge/Deployment-Render%20Cloud-black?style=for-the-badge&logo=render&logoColor=white)](https://group-7-2026.onrender.com)
+[![Live App Deployment](https://img.shields.io/badge/Deployment-Render%20Cloud-black?style=for-the-badge&logo=render&logoColor=white)](https://pi-jam-fast.onrender.com)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-REST%20%26%20WebSocket-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![OpenCV](https://img.shields.io/badge/OpenCV-Headless%20CV-5C3EE8.svg?style=for-the-badge&logo=opencv&logoColor=white)](https://opencv.org/)
@@ -51,10 +51,10 @@ In resource-constrained educational environments (such as Indian Zilla Parishad 
 ## 3. How to Access & Run the Application
 
 ### Option A: Access Live Cloud Deployment (Render)
-The application is pre-configured for automated cloud deployment on **Render**:
-- **Web Application:** Open your deployed Render URL (e.g., `https://<your-app>.onrender.com`) in any modern mobile or desktop browser.
-- **Project Introduction Page:** Access `https://<your-app>.onrender.com/intro` or click the `ℹ️ Overview` button in the app navigation bar.
-- **Health Check Endpoint:** `https://<your-app>.onrender.com/api/health`
+The application is pre-configured and live on **Render**:
+- **Live Web Application:** [https://pi-jam-fast.onrender.com](https://pi-jam-fast.onrender.com)
+- **Project Introduction Page:** [https://pi-jam-fast.onrender.com/intro](https://pi-jam-fast.onrender.com/intro) (or via GitHub Pages [https://ead-labs.github.io/Group-7_2026/](https://ead-labs.github.io/Group-7_2026/))
+- **Health Check Endpoint:** [https://pi-jam-fast.onrender.com/api/health](https://pi-jam-fast.onrender.com/api/health)
 
 ### Option B: Run Locally on Your Machine
 

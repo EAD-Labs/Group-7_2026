@@ -9,7 +9,7 @@
  *
  *  - In PRODUCTION (cloud-deployed backend, Android APK):
  *      Set PIJAM_API_URL below to your Render URL.
- *      Example: "https://group-7-2026.onrender.com"
+ *      Example: "https://pi-jam-fast.onrender.com"
  *
  * IMPORTANT: When building the Android APK for classroom use, set PRODUCTION_API_URL
  * to your deployed backend URL so the APK always talks to the cloud server.
@@ -20,7 +20,7 @@
   // ─── CHANGE THIS for production cloud deployment ───────────────────────────
   // Leave empty string "" for local development (server running on same machine).
   // Set to your Render URL for the Android APK build.
-  // Example: "https://group-7-2026.onrender.com"
+  // Example: "https://pi-jam-fast.onrender.com"
   const PRODUCTION_API_URL = "";
   // ──────────────────────────────────────────────────────────────────────────
 
