@@ -1,7 +1,7 @@
 import os
 from PIL import Image
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FRONT_DIR = os.path.join(BASE_DIR, "output", "front")
 BACK_DIR = os.path.join(BASE_DIR, "output", "back")
 PDF_DIR = os.path.join(BASE_DIR, "output", "pdf")

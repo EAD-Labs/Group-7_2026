@@ -3,7 +3,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 import os
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FRONT_DIR = os.path.join(BASE_DIR, "output", "front")
 BACK_DIR = os.path.join(BASE_DIR, "output", "back")
 os.makedirs(FRONT_DIR, exist_ok=True)

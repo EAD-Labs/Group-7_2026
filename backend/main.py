@@ -666,6 +666,7 @@ async def websocket_scan(websocket: WebSocket, session_id: str):
 # Mount Frontend & Output static files
 frontend_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend")
 output_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "output")
+docs_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "docs")
 
 if os.path.exists(output_dir):
     app.mount("/output", StaticFiles(directory=output_dir), name="output")
@@ -675,4 +676,12 @@ if os.path.exists(frontend_dir):
 
     @app.get("/")
     def serve_frontend_root():
+        return FileResponse(os.path.join(frontend_dir, "index.html"))
+
+    @app.get("/intro")
+    @app.get("/about")
+    def serve_project_introduction():
+        intro_file = os.path.join(docs_dir, "index.html")
+        if os.path.exists(intro_file):
+            return FileResponse(intro_file)
         return FileResponse(os.path.join(frontend_dir, "index.html"))

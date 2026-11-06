@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pi Jam FAST — Vision-Based Classroom Formative Assessment</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-dark: #3730a3;
+      --primary-light: #818cf8;
+      --accent-red: #ef4444;
+      --accent-yellow: #f59e0b;
+      --accent-blue: #3b82f6;
+      --accent-green: #10b981;
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --bg-card-hover: #293548;
+      --border-color: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --font-heading: 'Outfit', sans-serif;
+      --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a {
+      color: var(--primary-light);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    a:hover {
+      color: #c7d2fe;
+    }
+
+    /* Container */
+    .container {
+      width: 90%;
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+
+    /* Navigation Bar */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1rem 0;
+    }
+    .nav-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 1.25rem;
+      color: #fff;
+    }
+    .brand-badge {
+      background: linear-gradient(135deg, #4f46e5, #06b6d4);
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+    .nav-links {
+      display: flex;
+      gap: 1.25rem;
+      align-items: center;
+    }
+    .nav-links a {
+      color: var(--text-muted);
+      font-weight: 500;
+      font-size: 0.95rem;
+    }
+    .nav-links a:hover {
+      color: #fff;
+    }
+    .btn-cta {
+      background: linear-gradient(135deg, #4f46e5, #6366f1);
+      color: #fff !important;
+      padding: 0.55rem 1.25rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .btn-cta:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(79, 70, 229, 0.6);
+    }
+    .btn-secondary {
+      background: #1e293b;
+      color: #fff !important;
+      border: 1px solid var(--border-color);
+      padding: 0.55rem 1.25rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s ease;
+    }
+    .btn-secondary:hover {
+      background: var(--bg-card-hover);
+      border-color: #64748b;
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 4.5rem 0 3.5rem;
+      text-align: center;
+      background: radial-gradient(circle at 50% 20%, rgba(79, 70, 229, 0.18) 0%, rgba(15, 23, 42, 0) 70%);
+    }
+    .tagline-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(99, 102, 241, 0.12);
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      color: #a5b4fc;
+      padding: 0.35rem 1rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .hero h1 {
+      font-family: var(--font-heading);
+      font-size: 3.25rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      margin-bottom: 1.25rem;
+      background: linear-gradient(135deg, #ffffff 40%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero p.lead {
+      max-width: 820px;
+      margin: 0 auto 2.25rem;
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+    .hero-actions {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 3.5rem;
+    }
+
+    /* Metric Highlights Strip */
+    .metric-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.25rem;
+      margin-top: 1rem;
+    }
+    .metric-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.25rem;
+      text-align: center;
+      transition: transform 0.2s;
+    }
+    .metric-card:hover {
+      transform: translateY(-3px);
+      border-color: #6366f1;
+    }
+    .metric-number {
+      font-family: var(--font-heading);
+      font-size: 2.25rem;
+      font-weight: 800;
+      color: #38bdf8;
+      display: block;
+      line-height: 1.2;
+    }
+    .metric-label {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-top: 0.35rem;
+    }
+
+    /* Section Styles */
+    section {
+      padding: 4.5rem 0;
+      border-top: 1px solid var(--border-color);
+    }
+    .section-header {
+      text-align: center;
+      max-width: 760px;
+      margin: 0 auto 3.5rem;
+    }
+    .section-badge {
+      font-family: var(--font-heading);
+      color: var(--primary-light);
+      font-weight: 700;
+      font-size: 0.85rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+    .section-title {
+      font-family: var(--font-heading);
+      font-size: 2.4rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 1rem;
+      line-height: 1.25;
+    }
+    .section-desc {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+    }
+
+    /* The Problem Grid */
+    .problem-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+    }
+    .problem-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .problem-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--accent-red);
+    }
+    .problem-icon {
+      font-size: 2.25rem;
+      margin-bottom: 1rem;
+      display: block;
+    }
+    .problem-card h3 {
+      font-family: var(--font-heading);
+      font-size: 1.3rem;
+      color: #fff;
+      margin-bottom: 0.75rem;
+    }
+    .problem-card p {
+      color: var(--text-muted);
+      font-size: 0.98rem;
+    }
+
+    /* The Mechanic (How it Works) */
+    .workflow-steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.75rem;
+      margin-bottom: 3.5rem;
+    }
+    .step-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .step-number {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-heading);
+      font-weight: 800;
+      font-size: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+    .step-card h3 {
+      font-family: var(--font-heading);
+      font-size: 1.35rem;
+      color: #fff;
+      margin-bottom: 0.75rem;
+    }
+    .step-card p {
+      color: var(--text-muted);
+      font-size: 0.98rem;
+      flex-grow: 1;
+    }
+
+    /* Interactive Demo Card Box */
+    .interactive-card-box {
+      background: linear-gradient(180deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9));
+      border: 1px solid #475569;
+      border-radius: 16px;
+      padding: 2.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-around;
+      gap: 2rem;
+      margin-top: 2rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+    .interactive-demo-controls {
+      max-width: 460px;
+    }
+    .interactive-demo-controls h4 {
+      font-family: var(--font-heading);
+      font-size: 1.4rem;
+      color: #fff;
+      margin-bottom: 0.5rem;
+    }
+    .interactive-demo-controls p {
+      color: var(--text-muted);
+      margin-bottom: 1.25rem;
+      font-size: 0.95rem;
+    }
+    .option-btn-row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.25rem;
+    }
+    .opt-btn {
+      padding: 0.65rem 1.2rem;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      border: 2px solid transparent;
+      color: #fff;
+      transition: all 0.2s;
+    }
+    .opt-btn.opt-a { background: #ef4444; }
+    .opt-btn.opt-b { background: #f59e0b; color: #1e293b; }
+    .opt-btn.opt-c { background: #3b82f6; }
+    .opt-btn.opt-d { background: #10b981; }
+    .opt-btn:hover, .opt-btn.active {
+      transform: scale(1.08);
+      box-shadow: 0 0 15px currentColor;
+    }
+    .demo-status-text {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.95rem;
+      color: #cbd5e1;
+    }
+
+    /* The Simulated Physical Card */
+    .card-graphic-wrapper {
+      position: relative;
+      width: 240px;
+      height: 240px;
+    }
+    .virtual-card {
+      width: 100%;
+      height: 100%;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+      position: relative;
+      transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    /* 4 edge bands */
+    .edge-band {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-family: var(--font-heading);
+    }
+    .edge-top {
+      top: 0; left: 0; right: 0; height: 38px;
+      background: #ef4444; color: #fff; font-size: 1.15rem;
+    }
+    .edge-right {
+      top: 0; right: 0; bottom: 0; width: 38px;
+      background: #f59e0b; color: #1e293b; font-size: 1.15rem;
+    }
+    .edge-bottom {
+      bottom: 0; left: 0; right: 0; height: 38px;
+      background: #3b82f6; color: #fff; font-size: 1.15rem;
+    }
+    .edge-left {
+      top: 0; left: 0; bottom: 0; width: 38px;
+      background: #10b981; color: #fff; font-size: 1.15rem;
+    }
+    .card-center-marker {
+      width: 110px;
+      height: 110px;
+      background: #000;
+      border: 6px solid #000;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-template-rows: repeat(5, 1fr);
+      gap: 2px;
+      padding: 2px;
+      background-color: #000;
+    }
+    .aruco-cell {
+      background: #000;
+    }
+    .aruco-cell.w {
+      background: #fff;
+    }
+    .student-roll-label {
+      position: absolute;
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: #0f172a;
+      top: 42px;
+      left: 42px;
+      letter-spacing: 0.5px;
+    }
+    .scanner-pointer-arrow {
+      position: absolute;
+      top: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #38bdf8;
+      font-weight: 800;
+      font-size: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    /* Target Users */
+    .user-persona-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.75rem;
+    }
+    .persona-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 2rem;
+      border-top: 4px solid var(--primary-light);
+    }
+    .persona-card.student {
+      border-top-color: var(--accent-green);
+    }
+    .persona-card.supervisor {
+      border-top-color: var(--accent-yellow);
+    }
+    .persona-card h3 {
+      font-family: var(--font-heading);
+      font-size: 1.35rem;
+      color: #fff;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .persona-benefit-list {
+      list-style: none;
+      margin-top: 1rem;
+    }
+    .persona-benefit-list li {
+      position: relative;
+      padding-left: 1.5rem;
+      margin-bottom: 0.75rem;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+    .persona-benefit-list li::before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: #10b981;
+      font-weight: 800;
+    }
+
+    /* Comparison Table */
+    .table-wrapper {
+      overflow-x: auto;
+      background: var(--bg-card);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.95rem;
+    }
+    th, td {
+      padding: 1.1rem 1.25rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    th {
+      background: #111827;
+      font-family: var(--font-heading);
+      color: #fff;
+      font-weight: 600;
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    .highlight-col {
+      background: rgba(79, 70, 229, 0.12);
+      font-weight: 600;
+      color: #a5b4fc;
+    }
+
+    /* FAQ Section */
+    .faq-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+      gap: 1.5rem;
+    }
+    .faq-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+    .faq-item h4 {
+      font-family: var(--font-heading);
+      color: #fff;
+      font-size: 1.15rem;
+      margin-bottom: 0.6rem;
+    }
+    .faq-item p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    /* Footer */
+    footer {
+      padding: 3.5rem 0;
+      border-top: 1px solid var(--border-color);
+      background: #090d16;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.92rem;
+    }
+    footer .partner-logo-text {
+      font-family: var(--font-heading);
+      font-size: 1.15rem;
+      color: #fff;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+    }
+    footer .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      margin: 1.25rem 0;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 2.25rem; }
+      .section-title { font-size: 1.85rem; }
+      .faq-grid { grid-template-columns: 1fr; }
+      .interactive-card-box { padding: 1.5rem; }
+      .nav-links a:not(.btn-cta) { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="nav">
+    <div class="container nav-container">
+      <div class="brand">
+        <span class="brand-badge">FAST</span>
+        <span>Pi Jam Assessment</span>
+      </div>
+      <nav class="nav-links">
+        <a href="#problem">The Problem</a>
+        <a href="#mechanic">How It Works</a>
+        <a href="#users">Target Users</a>
+        <a href="#comparison">Comparison</a>
+        <a href="#faq">FAQ</a>
+        <a href="/" class="btn-cta">🚀 Launch App</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <header class="hero">
+    <div class="container">
+      <div class="tagline-badge">
+        ET617 Course Project • In Collaboration with Pi Jam Foundation
+      </div>
+      <h1>Low-Cost Formative Assessment<br>for Real Public Classrooms</h1>
+      <p class="lead">
+        A zero-cost, vision-based assessment platform empowering teachers in developing classrooms to conduct instant comprehension checks in under 15 seconds—using <strong>a single smartphone</strong> and <strong>reusable laminated paper cards</strong>.
+      </p>
+      <div class="hero-actions">
+        <a href="/" class="btn-cta" style="font-size: 1.05rem; padding: 0.75rem 1.75rem;">
+          🚀 Open FAST Assessment App
+        </a>
+        <a href="https://github.com/EAD-Labs/Group-7_2026" target="_blank" class="btn-secondary" style="font-size: 1.05rem; padding: 0.75rem 1.75rem;">
+          📂 View GitHub Repository
+        </a>
+      </div>
+
+      <!-- Quick Metrics Strip -->
+      <div class="metric-strip">
+        <div class="metric-card">
+          <span class="metric-number">0</span>
+          <span class="metric-label">Student Devices Required</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-number">100%</span>
+          <span class="metric-label">Offline-Capable (No School Wi-Fi)</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-number">&lt; 15s</span>
+          <span class="metric-label">Single Camera Sweep Grading</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-number">₹ 0</span>
+          <span class="metric-label">Recurring Consumable Cost</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Problem Section -->
+  <section id="problem">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-badge">The Reality of Indian Public Schools</span>
+        <h2 class="section-title">Why Existing Assessment Systems Fail</h2>
+        <p class="section-desc">
+          Formative assessment produces dramatic learning gains when feedback is immediate. But in Zilla Parishad and municipal government schools, teachers face severe infrastructure barriers.
+        </p>
+      </div>
+
+      <div class="problem-grid">
+        <div class="problem-card">
+          <span class="problem-icon">📄</span>
+          <h3>Why Paper OMR Sheets Fail</h3>
+          <p>
+            Bubble sheets require recurring paper, printing, and toner budgets for every single quiz. Grading requires high-resolution scanners or batch computer processing that takes 24–48 hours, eliminating any opportunity for same-day remedial teaching.
+          </p>
+        </div>
+
+        <div class="problem-card">
+          <span class="problem-icon">📱</span>
+          <h3>Why Tablets & Clickers Fail</h3>
+          <p>
+            Equipping 40+ students with individual hardware clickers or tablets requires thousands of dollars in upfront capital. In rural schools, hardware suffers from dead batteries, charging logistics, device breakage, and severe theft risks.
+          </p>
+        </div>
+
+        <div class="problem-card">
+          <span class="problem-icon">🙋</span>
+          <h3>Why Hand-Raising Fails</h3>
+          <p>
+            Asking students to raise hands results in extreme peer-mimicry bias: hesitant learners look around and blindly copy the class topper. Teachers cannot identify who is truly confused, shy students stay silent, and zero digital records are kept.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- The Core Mechanic / How it Works -->
+  <section id="mechanic">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-badge">The FAST Innovation</span>
+        <h2 class="section-title">How Pi Jam FAST Works in 3 Steps</h2>
+        <p class="section-desc">
+          A seamless physical-digital bridge that requires zero student electronics and works entirely offline.
+        </p>
+      </div>
+
+      <div class="workflow-steps">
+        <div class="step-card">
+          <div class="step-number">1</div>
+          <h3>Students Rotate Their Card</h3>
+          <p>
+            Each student receives a durable laminated card. The card features 4 colored edges: <strong>A (Red)</strong>, <strong>B (Yellow)</strong>, <strong>C (Blue)</strong>, and <strong>D (Green)</strong>. When a question is asked, students hold up their card with their chosen answer edge pointing <strong>UP</strong> toward the ceiling.
+          </p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">2</div>
+          <h3>Teacher Sweeps Phone Camera</h3>
+          <p>
+            The teacher opens the Pi Jam FAST app on their regular smartphone and sweeps the camera across the classroom in one smooth 5–15 second motion. The computer vision engine localizes and decodes every student's card simultaneously.
+          </p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">3</div>
+          <h3>Instant Actionable Analytics</h3>
+          <p>
+            The screen displays real-time Augmented Reality boxes, live counters for missing students, question accuracy percentages, distractor analysis (common misconceptions), and mastery scorecards ready for Excel/PDF export.
+          </p>
+        </div>
+      </div>
+
+      <!-- Interactive Card Orientation Simulation Widget -->
+      <div class="interactive-card-box">
+        <div class="interactive-demo-controls">
+          <h4>Interactive Card Simulator</h4>
+          <p>
+            Experience how the physical card works! Click an option below to rotate the student's card. Notice which color and letter points toward the ceiling:
+          </p>
+          <div class="option-btn-row">
+            <button class="opt-btn opt-a active" onclick="simulateCardVote('A', 0, '#ef4444', 'Red')">Option A (Red)</button>
+            <button class="opt-btn opt-b" onclick="simulateCardVote('B', 270, '#f59e0b', 'Yellow')">Option B (Yellow)</button>
+            <button class="opt-btn opt-c" onclick="simulateCardVote('C', 180, '#3b82f6', 'Blue')">Option C (Blue)</button>
+            <button class="opt-btn opt-d" onclick="simulateCardVote('D', 90, '#10b981', 'Green')">Option D (Green)</button>
+          </div>
+          <div id="demo-status" class="demo-status-text">
+            <strong>Top Edge (Detected Answer):</strong> <span style="color:#ef4444; font-weight:bold;">A (Red)</span><br>
+            <small style="color:#94a3b8;">CV detector calculates orientation angle = 0.0° • Verified by HSV top band</small>
+          </div>
+        </div>
+
+        <div class="card-graphic-wrapper">
+          <div class="scanner-pointer-arrow">
+            <span>▲ CEILING (TOP)</span>
+          </div>
+          <div id="demo-card" class="virtual-card">
+            <!-- 4 Outer Edge Bands -->
+            <div class="edge-band edge-top">A</div>
+            <div class="edge-band edge-right">B</div>
+            <div class="edge-band edge-bottom">C</div>
+            <div class="edge-band edge-left">D</div>
+
+            <span class="student-roll-label">ROLL #14</span>
+
+            <!-- ArUco 5x5 Fiducial Pattern Mockup -->
+            <div class="card-center-marker">
+              <div class="aruco-cell"></div><div class="aruco-cell w"></div><div class="aruco-cell"></div><div class="aruco-cell w"></div><div class="aruco-cell"></div>
+              <div class="aruco-cell w"></div><div class="aruco-cell w"></div><div class="aruco-cell"></div><div class="aruco-cell"></div><div class="aruco-cell w"></div>
+              <div class="aruco-cell"></div><div class="aruco-cell"></div><div class="aruco-cell w"></div><div class="aruco-cell w"></div><div class="aruco-cell"></div>
+              <div class="aruco-cell w"></div><div class="aruco-cell"></div><div class="aruco-cell w"></div><div class="aruco-cell"></div><div class="aruco-cell w"></div>
+              <div class="aruco-cell"></div><div class="aruco-cell w"></div><div class="aruco-cell"></div><div class="aruco-cell w"></div><div class="aruco-cell"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Target Users & Benefits -->
+  <section id="users">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-badge">Human-Centered Design</span>
+        <h2 class="section-title">Designed for Real Classroom Stakeholders</h2>
+        <p class="section-desc">
+          Tailored to the unique psychological, operational, and managerial needs of government education.
+        </p>
+      </div>
+
+      <div class="user-persona-grid">
+        <div class="persona-card">
+          <h3>👩‍🏫 For Teachers</h3>
+          <p>Eliminate grading fatigue while getting immediate diagnostic clarity before moving to the next lesson.</p>
+          <ul class="persona-benefit-list">
+            <li><strong>Zero manual grading:</strong> Complete a 5-question comprehension check in under 3 minutes total.</li>
+            <li><strong>Live missing indicator:</strong> Instantly see which students haven't held up their cards without roll-calling.</li>
+            <li><strong>Instant distractor analysis:</strong> Immediately discover if 70% of the class fell for distractor 'B'.</li>
+            <li><strong>Runs on personal smartphone:</strong> No specialized hardware to carry or calibrate.</li>
+          </ul>
+        </div>
+
+        <div class="persona-card student">
+          <h3>👦 For Students</h3>
+          <p>High-engagement, low-anxiety active participation that protects student privacy and dignity.</p>
+          <ul class="persona-benefit-list">
+            <li><strong>Peer-blind voting:</strong> Back of card is mirrored; neighbors cannot see which option is pointing up.</li>
+            <li><strong>No gadget anxiety:</strong> No fear of dropping expensive screens or dealing with password logins.</li>
+            <li><strong>Equal classroom voice:</strong> Back-benchers and quiet students are heard equally in every sweep.</li>
+            <li><strong>Durable & reusable:</strong> Heavyweight laminated cards withstand daily school handling.</li>
+          </ul>
+        </div>
+
+        <div class="persona-card supervisor">
+          <h3>📊 For Supervisors & Pi Jam</h3>
+          <p>Transparent, longitudinal learning data across municipal schools and foundation clusters.</p>
+          <ul class="persona-benefit-list">
+            <li><strong>Zero PII exposure:</strong> Student records use privacy-safe composite keys (School Code + Class ID + Roll No).</li>
+            <li><strong>Offline-first sync:</strong> Teachers scan without internet; sessions cache locally and upload when online.</li>
+            <li><strong>Excel & PDF exports:</strong> One-click generation of formatted mastery reports for administration.</li>
+            <li><strong>Supervisor Dashboard:</strong> Cluster-level views of question difficulty and teacher pacing.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- System Comparison Table -->
+  <section id="comparison">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-badge">Objective Evaluation</span>
+        <h2 class="section-title">Comparing Assessment Modalities</h2>
+        <p class="section-desc">
+          How Pi Jam FAST compares against conventional evaluation tools across resource-constrained metrics.
+        </p>
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Evaluation Criteria</th>
+              <th class="highlight-col">Pi Jam FAST (Our System)</th>
+              <th>Paper OMR Sheets</th>
+              <th>Hardware Clickers</th>
+              <th>Manual Hand-Raising</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Student Hardware</strong></td>
+              <td class="highlight-col"><strong>None (Laminated Cards)</strong></td>
+              <td>None (Paper Sheets)</td>
+              <td>1 Device per Student</td>
+              <td>None</td>
+            </tr>
+            <tr>
+              <td><strong>Recurring Cost</strong></td>
+              <td class="highlight-col"><strong>₹ 0 (Reusable Cards)</strong></td>
+              <td>High (Paper & Toner)</td>
+              <td>High (Battery/Repairs)</td>
+              <td>₹ 0</td>
+            </tr>
+            <tr>
+              <td><strong>Feedback Latency</strong></td>
+              <td class="highlight-col"><strong>Immediate (&lt; 15 seconds)</strong></td>
+              <td>24–48 Hours (Batch Scan)</td>
+              <td>Immediate</td>
+              <td>None (Quick Tally)</td>
+            </tr>
+            <tr>
+              <td><strong>Classroom Internet</strong></td>
+              <td class="highlight-col"><strong>100% Offline Capable</strong></td>
+              <td>Offline</td>
+              <td>Usually Required</td>
+              <td>Offline</td>
+            </tr>
+            <tr>
+              <td><strong>Peer-Mimicry Bias</strong></td>
+              <td class="highlight-col"><strong>Zero (Mirrored Student View)</strong></td>
+              <td>Low (Covered Sheet)</td>
+              <td>Low</td>
+              <td>Severe (High Copying)</td>
+            </tr>
+            <tr>
+              <td><strong>Digital Analytics</strong></td>
+              <td class="highlight-col"><strong>Instant (Mastery + Distractors)</strong></td>
+              <td>Delayed</td>
+              <td>Instant</td>
+              <td>None</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Frequently Asked Questions -->
+  <section id="faq">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-badge">Common Questions</span>
+        <h2 class="section-title">Frequently Asked Questions</h2>
+        <p class="section-desc">
+          Addressing key technical and operational questions about deployment in public schools.
+        </p>
+      </div>
+
+      <div class="faq-grid">
+        <div class="faq-item">
+          <h4>Does the classroom need Wi-Fi or active internet?</h4>
+          <p>
+            No. The entire computer vision scanning pipeline and SQLite database run locally. In offline mode, assessments are stored on the device and can be synchronized whenever the teacher reaches cellular coverage.
+          </p>
+        </div>
+
+        <div class="faq-item">
+          <h4>What happens if a student holds their card at a 45° angle?</h4>
+          <p>
+            The vision algorithm includes a built-in deadband filter. If the vertical coordinate difference between the top two edges is less than 15% of the card height, the reading is rejected as ambiguous, preventing false votes.
+          </p>
+        </div>
+
+        <div class="faq-item">
+          <h4>Can students cheat by looking at their classmate's card?</h4>
+          <p>
+            The back of each card (the student-facing side) is mirrored and contains minimal edge color boxes. From the side or back, classmates cannot easily decipher which option is oriented upward, preventing peer pressure and mimicry.
+          </p>
+        </div>
+
+        <div class="faq-item">
+          <h4>Do we need to print new cards for every class?</h4>
+          <p>
+            No! Cards are numbered Roll 1 to Roll 45 and laminated. Card #14 resolves to Roll #14 of whichever class is active (e.g., Grade 7-A in period 1, Grade 8-B in period 2). The same physical deck serves the entire school year after year.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="partner-logo-text">Pi Jam Foundation × FAST Assessment Platform</div>
+      <p>Course Project — ET617 Educational Technology (2026) | Team FAST (Group 7)</p>
+      <div class="footer-links">
+        <a href="/">Launch Web App</a>
+        <a href="https://github.com/EAD-Labs/Group-7_2026" target="_blank">GitHub Repository</a>
+        <a href="https://github.com/EAD-Labs/Group-7_2026/blob/main/docs/TECHNICAL_CONTEXT.md" target="_blank">Technical Specification</a>
+        <a href="https://github.com/EAD-Labs/Group-7_2026/blob/main/README.md" target="_blank">Documentation README</a>
+      </div>
+      <p style="font-size: 0.85rem; color: #64748b; margin-top: 1rem;">
+        Open-source under the MIT License. Designed for low-resource educational equity.
+      </p>
+    </div>
+  </footer>
+
+  <!-- Interactive Card Simulation Script -->
+  <script>
+    function simulateCardVote(option, rotationDeg, colorHex, colorName) {
+      // Rotate card
+      const card = document.getElementById('demo-card');
+      card.style.transform = `rotate(${rotationDeg}deg)`;
+
+      // Update button active state
+      document.querySelectorAll('.opt-btn').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.querySelector(`.opt-${option.toLowerCase()}`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      // Update status text
+      const statusDiv = document.getElementById('demo-status');
+      statusDiv.innerHTML = `
+        <strong>Top Edge (Detected Answer):</strong> <span style="color:${colorHex}; font-weight:bold;">${option} (${colorName})</span><br>
+        <small style="color:#94a3b8;">CV detector calculates orientation angle = ${rotationDeg.toFixed(1)}° • Verified by HSV top band</small>
+      `;
+    }
+  </script>
+</body>
+</html>

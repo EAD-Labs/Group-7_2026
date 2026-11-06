@@ -30,7 +30,7 @@ import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
 FRONT_DIR = os.path.join(OUTPUT_DIR, "front")
 BACK_DIR = os.path.join(OUTPUT_DIR, "back")

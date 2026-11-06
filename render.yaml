@@ -1,0 +1,17 @@
+# Render Blueprint Deployment Configuration
+# Pi Jam FAST Assessment Platform
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: pijam-fast
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9

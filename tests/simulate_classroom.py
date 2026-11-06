@@ -23,6 +23,18 @@ def create_synthetic_classroom(rows=5, cols=5, card_px=180):
     # Classroom background
     canvas = np.full((canvas_h, canvas_w, 3), 235, dtype=np.uint8)
 
+    # Ensure card assets exist in output/front
+    test_first_card = os.path.join(base_dir, "output", "front", "card_01_front.png")
+    if not os.path.exists(test_first_card):
+        print("  -> Marker cards not found in output/front. Auto-generating cards...")
+        try:
+            import subprocess
+            script_path = os.path.join(base_dir, "scripts", "generate_cards.py")
+            if os.path.exists(script_path):
+                subprocess.run([sys.executable, script_path], check=True)
+        except Exception as e:
+            print(f"  -> Could not auto-generate cards: {e}")
+
     # Angle mapping to answers: 0->A, 90->B, 180->C, 270->D
     rotations = [0, 90, 180, 270]
     ground_truth = {}
