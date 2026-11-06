@@ -8,8 +8,8 @@
  *      API_BASE = "" (empty) → all /api/... calls go to the same host (localhost or LAN IP)
  *
  *  - In PRODUCTION (cloud-deployed backend, Android APK):
- *      Set PIJAM_API_URL below to your Railway / Render URL.
- *      Example: "https://pijam-fast.up.railway.app"
+ *      Set PIJAM_API_URL below to your Render URL.
+ *      Example: "https://group-7-2026.onrender.com"
  *
  * IMPORTANT: When building the Android APK for classroom use, set PRODUCTION_API_URL
  * to your deployed backend URL so the APK always talks to the cloud server.
@@ -19,8 +19,8 @@
 (function () {
   // ─── CHANGE THIS for production cloud deployment ───────────────────────────
   // Leave empty string "" for local development (server running on same machine).
-  // Set to your Railway/Render URL for the Android APK build.
-  // Example: "https://pijam-fast.up.railway.app"
+  // Set to your Render URL for the Android APK build.
+  // Example: "https://group-7-2026.onrender.com"
   const PRODUCTION_API_URL = "";
   // ──────────────────────────────────────────────────────────────────────────
 

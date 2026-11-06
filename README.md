@@ -143,8 +143,6 @@ Group-7_2026/
 │   └── simulate_classroom.py       # 25-student synthetic classroom sweep benchmark
 ├── .gitignore                      # Clean repository ignore patterns (DBs, outputs, keys)
 ├── Procfile                        # Production web server process command
-├── nixpacks.toml                   # Nixpacks deployment configuration
-├── railway.toml                    # Railway deployment configuration
 ├── render.yaml                     # Render Blueprint specification
 ├── package.json                    # Mobile Capacitor build scripts & metadata
 ├── requirements.txt                # Production Python dependencies (opencv-python-headless)
